@@ -1,0 +1,18 @@
+{
+    "name": "PluginSet.Patch.Editor",
+    "references": [
+        "PluginSet.Core",
+        "PluginSet.Core.Editor",
+        "PluginSet.Patch"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

@@ -1,0 +1,14 @@
+{
+    "name": "PluginSet.Patch",
+    "references": [
+        "PluginSet.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": []
+}

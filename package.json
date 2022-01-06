@@ -1,0 +1,19 @@
+{
+  "name": "com.pluginset.patch",
+  "displayName": "PluginSet Patch",
+  "version": "0.0.1",
+  "unity": "2018.4",
+  "description": "A solution for update.",
+  "keywords": [
+    "pluginset",
+    "patch"
+  ],
+  "dependencies": {
+    "com.pluginset.core": "0.0.1",
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  },
+  "author": {
+    "name": "LyneXiao",
+    "email": "lixonxs@icloud.com"
+  }
+}
