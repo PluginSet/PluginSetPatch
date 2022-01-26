@@ -2,6 +2,7 @@ using System.Collections;
 using PluginSet.Core;
 using System.IO;
 using Common;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 namespace PluginSet.Patch
@@ -36,6 +37,14 @@ namespace PluginSet.Patch
         public IEnumerator StartPlugin()
         {
             IsRunning = true;
+            
+#if !UNITY_EDITOR && UNITY_ANDROID
+            if (!AndroidHelper.RequestPermissions("android.permission.WRITE_EXTERNAL_STORAGE|android.permission.READ_EXTERNAL_STORAGE"))
+            {
+                Application.Quit();
+                yield break;
+            }
+#endif
 
             ResourcesManager.PurgeInstance();
             ResourcesManager.NewInstance<PatchResourcesManager>();

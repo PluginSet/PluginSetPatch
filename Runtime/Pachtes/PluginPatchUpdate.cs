@@ -154,7 +154,7 @@ namespace PluginSet.Patch
 
         private PatchesDownloader CreateDownloader()
         {
-            var savePath = PatchResourcesManager.PatchesSavePath;
+            var savePath = ResourcesManager.PatchesSavePath;
             var streamingName = ResourcesManager.Instance.StreamingAssetsName;
             var downloader = new PatchesDownloader(_downloadUrl, _streamingUrl, streamingName, savePath);
             downloader.OnProgress(delegate(float progress)
