@@ -17,7 +17,7 @@ namespace PluginSet.Patch
         
         public override string Name => "ResourcesInit";
 
-        public int StartOrder => int.MinValue;
+        public int StartOrder => PluginsStartOrder.ResourceManager;
 
         public bool IsRunning { get; private set; }
 
