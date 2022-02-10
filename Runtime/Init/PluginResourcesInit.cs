@@ -119,7 +119,7 @@ namespace PluginSet.Patch
                 ResourcesManager.Instance.ReleaseAll();
         }
 
-#if DEBUG
+#if SHOW_ABCOUNT
         private void OnGUI()
         {
             var fontStyle = new UnityEngine.GUIStyle();
