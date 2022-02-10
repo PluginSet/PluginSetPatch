@@ -3,7 +3,7 @@ using PluginSet.Core;
 using System.IO;
 using Common;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
+using Logger = PluginSet.Core.Logger;
 
 namespace PluginSet.Patch
 {
@@ -13,6 +13,8 @@ namespace PluginSet.Patch
     [PluginRegister]
     public class PluginResourcesInit : PluginBase, IStartPlugin
     {
+        private static readonly Logger Logger = LoggerManager.GetLogger("PluginResourcesInit");
+        
         public override string Name => "ResourcesInit";
 
         public int StartOrder => int.MinValue;
@@ -38,14 +40,6 @@ namespace PluginSet.Patch
         {
             IsRunning = true;
             
-#if !UNITY_EDITOR && UNITY_ANDROID
-            if (!AndroidHelper.RequestPermissions("android.permission.WRITE_EXTERNAL_STORAGE|android.permission.READ_EXTERNAL_STORAGE"))
-            {
-                Application.Quit();
-                yield break;
-            }
-#endif
-
             ResourcesManager.PurgeInstance();
             ResourcesManager.NewInstance<PatchResourcesManager>();
             PatchResourcesManager manager = (PatchResourcesManager) ResourcesManager.Instance;
@@ -83,14 +77,14 @@ namespace PluginSet.Patch
 
                     Directory.CreateDirectory(savePath);
                 }
-
+                
                 // 将APK内部AssetBundle资源转存到可写目录
-                Debug.Log(">>>>>>>>开始转移资源");
+                Logger.Debug(">>>>>>>>开始转移资源");
                 var transfer = new PatchesDownloader(prefix, streamingName, savePath);
                 transfer.SetTaskProgressUpdate(DownloadProgressUpdated);
                 transfer.SetAutoRetry();
                 yield return transfer.StartDownload(fileManifest);
-                Debug.Log("<<<<<<<<转移资源完成");
+                Logger.Debug("<<<<<<<<转移资源完成");
             }
 
             // 初始化资源管理器
