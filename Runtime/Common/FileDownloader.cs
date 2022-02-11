@@ -3,6 +3,7 @@ using System.IO;
 using PluginSet.Core;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.PlayerLoop;
 
 namespace PluginSet.Patch
 {
