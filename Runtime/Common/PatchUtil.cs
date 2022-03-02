@@ -374,8 +374,7 @@ namespace PluginSet.Patch
                 var newPaths = new string[paths.Length];
                 newPaths[0] = path;
                 Array.Copy(paths, 0, newPaths, 1, paths.Length - 1);
-                path = Path.Combine(newPaths);
-                pattern = paths[paths.Length - 1];
+                return FindMatchFileName(Path.Combine(newPaths), paths[paths.Length - 1], option);
             }
             
             var files = Directory.GetFiles(path, pattern, option);
