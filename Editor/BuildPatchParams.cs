@@ -65,5 +65,61 @@ namespace PluginSet.Patch.Editor
             config.Patches = buildParams.Patches;
         }
 
+
+        private void OnEnable()
+        {
+            FixOldVersionValue();
+        }
+
+        private void FixOldVersionValue()
+        {
+            bool dirty = FixPathInfo(StreamingPaths);
+            if (FixPatchInfo(Patches))
+                dirty = true;
+            
+            if (dirty)
+                EditorUtility.SetDirty(this);
+            
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        private bool FixPathInfo(PathInfo[] pathInfos)
+        {
+            bool dirty = false;
+            for (int i = 0; i < pathInfos.Length; i++)
+            {
+                var info = pathInfos[i];
+                if (info.BuildByFile)
+                {
+                    dirty = true;
+                    info.BuildByFile = false;
+                    if (info.BuildType == PathBuildType.AllInBundle)
+                        info.BuildType = PathBuildType.AllDirectories;
+
+                    pathInfos[i] = info;
+                }
+            }
+
+            return dirty;
+        }
+
+        private bool FixPatchInfo(PatchInfo[] patchInfos)
+        {
+            bool dirty = false;
+            for (int i = 0; i < patchInfos.Length; i++)
+            {
+                var info = patchInfos[i];
+                var pathInfos = info.Paths;
+                if (FixPathInfo(pathInfos))
+                {
+                    dirty = true;
+                    info.Paths = pathInfos;
+                    patchInfos[i] = info;
+                }
+            }
+
+            return dirty;
+        }
     }
 }

@@ -97,6 +97,8 @@ namespace PluginSet.Patch
         public string Name { get; protected set; }
         public string Version { get; protected set; }
         
+        public bool IsEmpty { get; protected set; }
+        
         public string[] SubPatches { get; protected set; }
 
         private int _fileVersion;
@@ -143,7 +145,8 @@ namespace PluginSet.Patch
 
         private void InitWithBuffer(byte[] buffer)
         {
-            if (buffer == null)
+            IsEmpty = buffer == null;
+            if (IsEmpty)
                 return;
             
             Buffer = buffer;

@@ -251,11 +251,7 @@ namespace PluginSet.Patch
 
                             string fileName = null;
                             if (!string.IsNullOrEmpty(pathInfo.Path))
-                            {
-                                fileName = Global.GetFullPath(Path.Combine(pathInfo.Path, "..", tempPath));
-                                if (!File.Exists(fileName))
-                                    fileName = null;
-                            }
+                                fileName = FindMatchFileName(Path.Combine(pathInfo.Path, ".."), tempPath);
 
                             if (fileName == null && pathInfo.FileList != null)
                             {
@@ -290,6 +286,193 @@ namespace PluginSet.Patch
 
             return result as T;
         }
+
+        public static bool ExistsBundle(string bundleName, Dictionary<string, PathInfo[]> pathInfoses)
+        {
+            var manager = ResourcesManager.Instance;
+            foreach (var searchPath in manager.SearchPaths)
+            {
+                if (!pathInfoses.TryGetValue(searchPath, out var pathInfos))
+                    continue;
+
+                foreach (var pathInfo in pathInfos)
+                {
+                    if (pathInfo.UseResourceLoad)
+                        continue;
+                    
+                    if (pathInfo.BuildType == PathBuildType.AllDirectories)
+                    {
+                        foreach (var file in Directory.GetFiles(pathInfo.Path, "*", SearchOption.AllDirectories))
+                        {
+                            if (!Global.IsAsset(file))
+                                continue;
+                            
+                            var pathBundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
+
+                            if (bundleName.Equals(pathBundleName))
+                                return true;
+                        }
+                    }
+                    else if (pathInfo.BuildType == PathBuildType.TopDirectory)
+                    {
+                        foreach (var directory in Directory.GetDirectories(pathInfo.Path, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            var pathBundleName = Path.GetFileName(directory)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
+
+                            if (bundleName.Equals(pathBundleName))
+                                return true;
+                        }
+
+                        foreach (var file in Directory.GetFiles(pathInfo.Path, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            if (!Global.IsAsset(file))
+                                continue;
+                            
+                            var pathBundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
+
+                            if (bundleName.Equals(pathBundleName))
+                                return true;
+                        }
+                    }
+                    else if (pathInfo.BuildType == PathBuildType.AllInBundle)
+                    {
+                        var pathBundleName = pathInfo.BundleName;
+                        if (string.IsNullOrEmpty(pathBundleName))
+                            pathBundleName = Path.GetFileName(pathInfo.Path)?.ToLower();
+
+                        if (bundleName.Equals(pathBundleName))
+                            return true;
+                    }
+                    else
+                    {
+                        throw new Exception("Unknow BuildPathType = " + pathInfo.BuildType);
+                    }
+                }
+            }
+
+            return false;
+        }
+
+
+        private static string FindMatchFileName(string path, string pattern,
+            SearchOption option = SearchOption.TopDirectoryOnly)
+        {
+            var files = Directory.GetFiles(path, pattern, option);
+            if (files.Length <= 0)
+                return null;
+
+            return files[0];
+        }
+
+        public static string FindEditorBundleAsset(string bundleName, string assetName,
+            Dictionary<string, PathInfo[]> pathInfoses, string ext = "*")
+        {
+            var manager = ResourcesManager.Instance;
+            var tempPath = $"{assetName}.{ext}";
+            
+            foreach (var searchPath in manager.SearchPaths)
+            {
+                if (!pathInfoses.TryGetValue(searchPath, out var pathInfos))
+                    continue;
+
+                foreach (var pathInfo in pathInfos)
+                {
+                    if (pathInfo.UseResourceLoad)
+                        continue;
+
+                    string fileName = string.Empty;
+                    if (pathInfo.BuildType == PathBuildType.AllDirectories)
+                    {
+                        foreach (var file in Directory.GetFiles(pathInfo.Path, $"*.{ext}", SearchOption.AllDirectories))
+                        {
+                            if (!Global.IsAsset(file))
+                                continue;
+                            
+                            var pathBundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
+                                
+                            if (!bundleName.Equals(pathBundleName))
+                                continue;
+
+                            return Global.GetSubPath(".", Global.GetFullPath(file));
+                        }
+                    }
+                    else if (pathInfo.BuildType == PathBuildType.TopDirectory)
+                    {
+                        foreach (var directory in Directory.GetDirectories(pathInfo.Path, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            var pathBundleName = Path.GetFileName(directory)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
+                                
+                            if (!bundleName.Equals(pathBundleName))
+                                continue;
+
+                            fileName = FindMatchFileName(directory, tempPath);
+                            if (!string.IsNullOrEmpty(fileName))
+                                return Global.GetSubPath(".", Global.GetFullPath(fileName));
+                        }
+
+                        if (string.IsNullOrEmpty(fileName))
+                        {
+                            foreach (var file in Directory.GetFiles(pathInfo.Path, $"*.{ext}", SearchOption.TopDirectoryOnly))
+                            {
+                                if (!Global.IsAsset(file))
+                                    continue;
+                            
+                                var pathBundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                                if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                    pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
+                                    
+                                if (!bundleName.Equals(pathBundleName))
+                                    continue;
+
+                                return Global.GetSubPath(".", Global.GetFullPath(file));
+                            }
+                        }
+                    }
+                    else if (pathInfo.BuildType == PathBuildType.AllInBundle)
+                    {
+                        var pathBundleName = pathInfo.BundleName;
+                        if (string.IsNullOrEmpty(pathBundleName))
+                            pathBundleName = Path.GetFileName(pathInfo.Path)?.ToLower();
+                        
+                        if (!bundleName.Equals(pathBundleName))
+                            continue;
+
+                        fileName = FindMatchFileName(pathInfo.Path, $"*.{ext}");
+                        if (!string.IsNullOrEmpty(fileName))
+                            return Global.GetSubPath(".", Global.GetFullPath(fileName));
+
+                        if (pathInfo.FileList != null)
+                        {
+                            foreach (var file in pathInfo.FileList)
+                            {
+                                if (file.EndsWith(tempPath))
+                                {
+                                    fileName = Global.GetFullPath(file);
+                                    if (File.Exists(fileName))
+                                        return Global.GetSubPath(".", fileName);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Unknow BuildPathType = " + pathInfo.BuildType);
+                    }
+                }
+            }
+
+            return null;
+        }
         
         public static UnityEngine.Object LoadEditorBundleAsset(string bundleName, string assetName, Dictionary<string, PathInfo[]> pathInfoses, Type type)
         {
@@ -297,66 +480,12 @@ namespace PluginSet.Patch
             if (extensionTypes == null)
                 return null;
             
-            var manager = ResourcesManager.Instance;
+            
             foreach (var ext in extensionTypes)
             {
-                var tempPath = $"{assetName}.{ext}";
-                
-                foreach (var searchPath in manager.SearchPaths)
-                {
-                    if (!pathInfoses.TryGetValue(searchPath, out var pathInfos))
-                        continue;
-
-                    foreach (var pathInfo in pathInfos)
-                    {
-                        if (pathInfo.UseResourceLoad)
-                            continue;
-
-                        string fileName = string.Empty;
-                        if (pathInfo.BuildByFile)
-                        {
-                            foreach (var file in Directory.GetFiles(pathInfo.Path, $"*.{ext}", SearchOption.AllDirectories))
-                            {
-                                var pathBundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
-                                if (!bundleName.Equals(pathBundleName))
-                                    continue;
-
-                                fileName = Global.GetFullPath(file);
-                            }
-                        }
-                        else
-                        {
-                            var pathBundleName = pathInfo.BundleName;
-                            if (string.IsNullOrEmpty(pathBundleName))
-                                pathBundleName = Path.GetFileName(pathInfo.Path)?.ToLower();
-                            
-                            if (!bundleName.Equals(pathBundleName))
-                                continue;
-
-                            fileName = Global.GetFullPath(Path.Combine(pathInfo.Path, tempPath));
-                            if (!File.Exists(fileName))
-                                fileName = null;
-
-                            if (fileName == null && pathInfo.FileList != null)
-                            {
-                                foreach (var file in pathInfo.FileList)
-                                {
-                                    if (file.EndsWith(tempPath))
-                                    {
-                                        fileName = Global.GetFullPath(file);
-                                        if (!File.Exists(fileName))
-                                            fileName = null;
-                                        else
-                                            break;
-                                    }
-                                }
-                            }
-                        }
-                        
-                        if (!string.IsNullOrEmpty(fileName))
-                            return UnityEditor.AssetDatabase.LoadAssetAtPath(Global.GetSubPath(".", fileName), type);
-                    }
-                }
+                var fileName = FindEditorBundleAsset(bundleName, assetName, pathInfoses, ext);
+                if (!string.IsNullOrEmpty(fileName))
+                    return UnityEditor.AssetDatabase.LoadAssetAtPath(fileName, type);
             }
 
             return null;

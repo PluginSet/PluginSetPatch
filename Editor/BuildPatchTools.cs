@@ -228,30 +228,63 @@ namespace PluginSet.Patch.Editor
             foreach (var pathInfo in paths)
             {
                 var path = pathInfo.Path;
-                if (pathInfo.BuildByFile)
+                switch (pathInfo.BuildType)
                 {
-                    foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
+                    case PathBuildType.AllInBundle:
                     {
-                        if (!Global.IsAsset(file))
-                            continue;
+                        var bundleName = pathInfo.BundleName;
+                        if (!string.IsNullOrEmpty(path))
+                            bundleName = CollectFileMapWithPath(pathInfo.BundleName, pathInfo.UseResourceLoad, path
+                                , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
 
-                        var bundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
-                        if (string.IsNullOrEmpty(bundleName))
-                            continue;
+                        if (pathInfo.FileList != null)
+                            CollectFileMapWithFiles(bundleName, pathInfo.FileList, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                    } break;
+                    case PathBuildType.TopDirectory:
+                    {
+                        foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly))
+                        {
+                            if (!Global.IsAsset(file))
+                                continue;
+
+                            var bundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                bundleName = string.Format(pathInfo.BundleName, bundleName);
+                            
+                            if (string.IsNullOrEmpty(bundleName))
+                                continue;
+                            
+                            CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                        }
                         
-                        CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
-                    }
-                }
-                else
-                {
-                    var bundleName = pathInfo.BundleName;
-                    if (!string.IsNullOrEmpty(path))
-                        bundleName = CollectFileMapWithPath(pathInfo.BundleName, pathInfo.UseResourceLoad
-                            , path, ignoreFiles, ref fileMap, ref bundleInfos
-                            , defFileBundleName);
+                        foreach (var directory in Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly))
+                        {
+                            var bundleName = Path.GetFileName(directory)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                bundleName = string.Format(pathInfo.BundleName, bundleName);
+                            
+                            CollectFileMapWithPath(bundleName, pathInfo.UseResourceLoad, directory
+                                , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                        }
+                        
+                    } break;
+                    case PathBuildType.AllDirectories:
+                    {
+                        foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
+                        {
+                            if (!Global.IsAsset(file))
+                                continue;
 
-                    if (pathInfo.FileList != null)
-                        CollectFileMapWithFiles(bundleName, pathInfo.FileList, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                            var bundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                                bundleName = string.Format(pathInfo.BundleName, bundleName);
+                            
+                            if (string.IsNullOrEmpty(bundleName))
+                                continue;
+                            
+                            CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                        }
+                    } break;
                 }
             }
         }

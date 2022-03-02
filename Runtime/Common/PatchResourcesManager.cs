@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using PluginSet.Core;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -268,6 +269,10 @@ namespace PluginSet.Patch
 
         public override Object LoadAsset(string bundleName, string assetName, Type type)
         {
+#if UNITY_EDITOR
+            if (_searchManifest.All(mani => mani.IsEmpty))
+                return PatchUtil.LoadEditorBundleAsset(bundleName, assetName, PathInfoses, type);
+#endif
             var manifest = FindBundlePatchWithAsset(bundleName, assetName);
             if (manifest == null)
                 return null;
@@ -351,7 +356,20 @@ namespace PluginSet.Patch
 #endif
         public override bool ExistsBundle(string name)
         {
+#if UNITY_EDITOR
+            if (_searchManifest.All(manifest => manifest.IsEmpty))
+                return PatchUtil.ExistsBundle(name, PathInfoses);
+#endif
             return FindBundlePatch(name) != null;
+        }
+
+        public override bool ExistsAsset(string bundleName, string assetName)
+        {
+#if UNITY_EDITOR
+            if (_searchManifest.All(manifest => manifest.IsEmpty))
+                return !string.IsNullOrEmpty(PatchUtil.FindEditorBundleAsset(bundleName, assetName, PathInfoses));
+#endif
+            return FindBundlePatchWithAsset(bundleName, assetName) != null;
         }
 
         private FileManifest FindBundlePatch(string name)
@@ -507,6 +525,15 @@ namespace PluginSet.Patch
             Action<Object> complete = null, Func<Action<Object>,
                 IEnumerator> noneCall = null)
         {
+#if UNITY_EDITOR
+            if (_searchManifest.All(mani => mani.IsEmpty))
+            {
+                var asset = PatchUtil.LoadEditorBundleAsset(name, assetName, PathInfoses, type);
+                yield return null;
+                complete?.Invoke(asset);
+                yield break;
+            }
+#endif
             FileManifest manifest = null;
 
             var key = $"{name}?{assetName}";
