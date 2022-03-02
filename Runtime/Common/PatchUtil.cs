@@ -363,6 +363,21 @@ namespace PluginSet.Patch
         private static string FindMatchFileName(string path, string pattern,
             SearchOption option = SearchOption.TopDirectoryOnly)
         {
+            if (!Directory.Exists(path))
+                return null;
+
+            pattern = pattern ?? "*";
+            pattern = pattern.Replace("\\", "/");
+            var paths = pattern.Split('/');
+            if (paths.Length > 1)
+            {
+                var newPaths = new string[paths.Length];
+                newPaths[0] = path;
+                Array.Copy(paths, 0, newPaths, 1, paths.Length - 1);
+                path = Path.Combine(newPaths);
+                pattern = paths[paths.Length - 1];
+            }
+            
             var files = Directory.GetFiles(path, pattern, option);
             if (files.Length <= 0)
                 return null;
