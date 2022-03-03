@@ -530,7 +530,17 @@ namespace PluginSet.Patch
             {
                 var asset = PatchUtil.LoadEditorBundleAsset(name, assetName, PathInfoses, type);
                 yield return null;
-                complete?.Invoke(asset);
+                if (asset == null)
+                {
+                    if (noneCall != null)
+                        yield return noneCall(complete);
+                    else
+                        complete?.Invoke(null);
+                }
+                else
+                {
+                    complete?.Invoke(asset);
+                }
                 yield break;
             }
 #endif
