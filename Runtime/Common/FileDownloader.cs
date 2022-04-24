@@ -3,10 +3,16 @@ using System.IO;
 using PluginSet.Core;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.PlayerLoop;
 
 namespace PluginSet.Patch
 {
+
+    public class CertHandler : CertificateHandler {
+        protected override bool ValidateCertificate (byte[] certificateData) {
+            return true;
+        }
+    }
+    
     public class FileDownloader: IStopableAsyncOperationTask
     {
         protected event Action<FileDownloader, string> OnDownloadError;
@@ -81,6 +87,7 @@ namespace PluginSet.Patch
             var downloadHandler = new DownloadHandlerFile(_savePath);
             downloadHandler.removeFileOnAbort = true;
             var request = new UnityWebRequest(_url, "GET", downloadHandler, null);
+            request.certificateHandler = new CertHandler();
             if (_timeOut > 0)
                 request.timeout = _timeOut;
             
