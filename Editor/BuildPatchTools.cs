@@ -12,6 +12,27 @@ namespace PluginSet.Patch.Editor
     [BuildTools]
     public static class BuildPatchTools
     {
+        [AssetBundleFilePathsCollectorAttribute(int.MinValue)]
+        public static void CollectAssetBundleFilePaths(BuildProcessorContext context, string bundleName,
+            List<string> result)
+        {
+            var buildParams = context.BuildChannels.Get<BuildPatchParams>("Patch");
+            foreach (var path in buildParams.StreamingPaths.Concat(buildParams.Patches.SelectMany(patch => patch.Paths)))
+            {
+                if (path.UseResourceLoad)
+                    continue;
+
+                if (string.IsNullOrEmpty(path.BundleName))
+                {
+                    if (bundleName.ToLower().Equals(Path.GetFileName(path.Path)?.ToLower()))
+                        result.Add(path.Path);
+                } else if (path.BundleName.ToLower().Equals(bundleName.ToLower()))
+                {
+                    result.Add(path.Path);
+                }
+            }
+        }
+        
         [OnBuildBundles(int.MinValue)]
         [OnBuildPatches(int.MinValue)]
         public static void CollectInvalidAssets(BuildProcessorContext context)
