@@ -35,11 +35,17 @@ namespace PluginSet.Patch.Editor
         [Tooltip("构建热更资源时检查Resources中的资源")]
         public bool CheckResourcesWhenBuildPatch;
 
-        [Tooltip("主包资源数据")]
+            [Tooltip("主包资源数据")]
 //        [FoldersDrag("Path", "StreamingPaths")]
+#if UNITY_2020_1_OR_NEWER
+        [NonReorderable]
+#endif
         public PathInfo[] StreamingPaths;
 
         [Tooltip("子包资源数据")]
+#if UNITY_2020_1_OR_NEWER
+        [NonReorderable]
+#endif
         public PatchInfo[] Patches;
 
         [Tooltip("依赖资源构建方式：\n1. BuildWithDirectory 分文件目录构建\n2. 单个文件构建\n3. 按照引用构建")]

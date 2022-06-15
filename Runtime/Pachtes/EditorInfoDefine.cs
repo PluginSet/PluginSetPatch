@@ -39,6 +39,9 @@ namespace PluginSet.Patch
         public string BundleName;
 
         [HideInInspector]
+#if UNITY_2020_1_OR_NEWER
+        [NonReorderable]
+#endif
         public string[] FileList;
 
         public override string ToString()
@@ -57,6 +60,9 @@ namespace PluginSet.Patch
         public bool CopyToStream;
 
         [SerializeField]
+#if UNITY_2020_1_OR_NEWER
+        [NonReorderable]
+#endif
         public PathInfo[] Paths;
     }
 }
