@@ -92,6 +92,9 @@ namespace PluginSet.Patch.Editor
 
         private bool FixPathInfo(PathInfo[] pathInfos)
         {
+            if (pathInfos == null)
+                return false;
+            
             bool dirty = false;
             for (int i = 0; i < pathInfos.Length; i++)
             {
@@ -112,6 +115,9 @@ namespace PluginSet.Patch.Editor
 
         private bool FixPatchInfo(PatchInfo[] patchInfos)
         {
+            if (patchInfos == null)
+                return false;
+            
             bool dirty = false;
             for (int i = 0; i < patchInfos.Length; i++)
             {
