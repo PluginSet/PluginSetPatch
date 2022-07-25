@@ -1,15 +1,16 @@
 {
-  "name": "com.pluginset.tim",
-  "displayName": "PluginSet TIMSDK",
+  "name": "com.pluginset.patch",
+  "displayName": "PluginSet Patch",
   "version": "0.0.1",
   "unity": "2018.4",
-  "description": "TIM SDK in PluginSet.",
+  "description": "A solution for update.",
   "keywords": [
     "pluginset",
-    "tim"
+    "patch"
   ],
   "dependencies": {
-    "com.pluginset.core": "0.0.1"
+    "com.pluginset.core": "0.0.1",
+    "com.unity.modules.unitywebrequest": "1.0.0"
   },
   "author": {
     "name": "LyneXiao",
