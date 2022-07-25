@@ -1,0 +1,23 @@
+{
+    "name": "PluginSet.TIM",
+    "rootNamespace": "",
+    "references": [
+        "PluginSet.Core",
+        "TencentIMSDK"
+    ],
+    "includePlatforms": [
+        "Android",
+        "Editor",
+        "iOS",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
