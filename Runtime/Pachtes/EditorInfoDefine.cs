@@ -39,7 +39,7 @@ namespace PluginSet.Patch
         public string BundleName;
 
         [HideInInspector]
-#if UNITY_2020_1_OR_NEWER
+#if UNITY_2020_2_OR_NEWER
         [NonReorderable]
 #endif
         public string[] FileList;
@@ -60,7 +60,7 @@ namespace PluginSet.Patch
         public bool CopyToStream;
 
         [SerializeField]
-#if UNITY_2020_1_OR_NEWER
+#if UNITY_2020_2_OR_NEWER
         [NonReorderable]
 #endif
         public PathInfo[] Paths;

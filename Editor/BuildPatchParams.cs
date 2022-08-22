@@ -37,13 +37,13 @@ namespace PluginSet.Patch.Editor
 
             [Tooltip("主包资源数据")]
 //        [FoldersDrag("Path", "StreamingPaths")]
-#if UNITY_2020_1_OR_NEWER
+#if UNITY_2020_2_OR_NEWER
         [NonReorderable]
 #endif
         public PathInfo[] StreamingPaths;
 
         [Tooltip("子包资源数据")]
-#if UNITY_2020_1_OR_NEWER
+#if UNITY_2020_2_OR_NEWER
         [NonReorderable]
 #endif
         public PatchInfo[] Patches;
