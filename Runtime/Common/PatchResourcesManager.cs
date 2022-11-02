@@ -251,13 +251,21 @@ namespace PluginSet.Patch
 
         public override void ReleaseBundle(string bundleName)
         {
-            var abRef = AssetBundleRef.GetLoadedAssetBundle(bundleName);
+            var manifest = FindBundlePatch(bundleName);
+            if (manifest == null)
+                return;
+            var realName = manifest.GetRealBundleName(bundleName);
+            var abRef = AssetBundleRef.GetLoadedAssetBundle(realName);
             abRef?.Release();
         }
 
         public override void DontReleaseBundle(string bundleName)
         {
-            var abRef = AssetBundleRef.GetLoadedAssetBundle(bundleName);
+            var manifest = FindBundlePatch(bundleName);
+            if (manifest == null)
+                return;
+            var realName = manifest.GetRealBundleName(bundleName);
+            var abRef = AssetBundleRef.GetLoadedAssetBundle(realName);
             abRef?.DontRelease();
         }
 
