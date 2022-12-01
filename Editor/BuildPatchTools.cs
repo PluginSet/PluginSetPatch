@@ -17,7 +17,7 @@ namespace PluginSet.Patch.Editor
             List<string> result)
         {
             var buildParams = context.BuildChannels.Get<BuildPatchParams>("Patch");
-            foreach (var path in buildParams.StreamingPaths.Concat(buildParams.Patches.SelectMany(patch => patch.Paths)))
+            foreach (var path in buildParams.StreamingPaths.Concat(buildParams.Patches.Where(patch=>!patch.Ignore).SelectMany(patch => patch.Paths)))
             {
                 if (path.UseResourceLoad)
                     continue;
@@ -117,6 +117,9 @@ namespace PluginSet.Patch.Editor
             {
                 foreach (var info in patchInfos)
                 {
+                    if (info.Ignore)
+                        continue;
+                    
                     FileBundleInfo.TempBundleMap.Clear();
                     fileMap.Clear();
                     bundleInfos.Clear();

@@ -57,6 +57,9 @@ namespace PluginSet.Patch
         public string Name;
 
         [SerializeField]
+        public bool Ignore;
+
+        [SerializeField]
         public bool CopyToStream;
 
         [SerializeField]

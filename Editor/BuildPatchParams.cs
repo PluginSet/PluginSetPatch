@@ -122,6 +122,9 @@ namespace PluginSet.Patch.Editor
             for (int i = 0; i < patchInfos.Length; i++)
             {
                 var info = patchInfos[i];
+                if (info.Ignore)
+                    continue;
+                
                 var pathInfos = info.Paths;
                 if (FixPathInfo(pathInfos))
                 {
