@@ -104,6 +104,7 @@ namespace PluginSet.Patch.Editor
             var patchPath = Path.Combine(Application.dataPath, "Patches");
             var fileMap = new Dictionary<string, FileBundleInfo>();
             var bundleInfos = new Dictionary<string, BundleInfo>();
+            var version = PluginUtil.GetVersionString(context.VersionName, int.Parse(context.Build));
             
             var invalidList = context.TryGet<List<string>>("invalidAssets", new List<string>());
             var depFileBundleName = context.TryGet("depFileBundleName", new Dictionary<string, string>());
@@ -163,10 +164,12 @@ namespace PluginSet.Patch.Editor
                     }
                     else if (!string.IsNullOrEmpty(context.BuildPath))
                     {
-                        if (isBuildUpdatePatch)
-                            Global.MoveAllFilesToPath(exportPath, context.BuildPath);
-                        else
-                            Global.MoveAllFilesToPath(exportPath, Path.Combine(context.BuildPath, "Patches"));
+//                        if (isBuildUpdatePatch)
+//                            Global.MoveAllFilesToPath(exportPath, context.BuildPath);
+//                        else
+                        var fileName = Path.Combine(exportPath, info.Name.ToLower());
+                        File.Move(fileName, $"{fileName}_{version}");
+                        Global.MoveAllFilesToPath(exportPath, Path.Combine(context.BuildPath, "Patches"));
                     }
                 }
                 
