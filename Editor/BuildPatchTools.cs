@@ -151,24 +151,22 @@ namespace PluginSet.Patch.Editor
                     var exportPath = Path.Combine(patchPath, info.Name);
                     Global.CheckAndDeletePath(exportPath);
                     var manifest = context.BuildAssetBundle(exportPath, info.Name);
+
+                    var copyToStream = info.CopyToStream &&
+                                       (!isBuildUpdatePatch || buildParams.EnableCopyToStreamWhenBuildUpdatePatches);
                     
-                    Global.CallCustomOrderMethods<OnBuildBundlesCompletedAttribute, BuildToolsAttribute>(context, exportPath, info.Name, manifest, false);
+                    Global.CallCustomOrderMethods<OnBuildBundlesCompletedAttribute, BuildToolsAttribute>(context, exportPath, info.Name, manifest, !copyToStream);
                     
                     if (manifest == null)
                         continue;
 
-                    if (info.CopyToStream && (!isBuildUpdatePatch || buildParams.EnableCopyToStreamWhenBuildUpdatePatches))
+                    if (copyToStream)
                     {
                         subPatches.Add(info.Name);
                         Global.MoveAllFilesToPath(exportPath, streamPath);
                     }
                     else if (!string.IsNullOrEmpty(context.BuildPath))
                     {
-//                        if (isBuildUpdatePatch)
-//                            Global.MoveAllFilesToPath(exportPath, context.BuildPath);
-//                        else
-                        var fileName = Path.Combine(exportPath, info.Name.ToLower());
-                        File.Move(fileName, $"{fileName}_{version}");
                         Global.MoveAllFilesToPath(exportPath, Path.Combine(context.BuildPath, "Patches"));
                     }
                 }
