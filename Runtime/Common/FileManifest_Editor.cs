@@ -138,7 +138,7 @@ namespace PluginSet.Patch
 
             var saveJson = new SaveJson
             {
-                Files = fileMap.Values.ToArray()
+                Files = list.ToArray()
             };
             File.WriteAllText(Path.Combine(path, $"{targetName}_files.manifest"), JsonUtility.ToJson(saveJson, true));
 
