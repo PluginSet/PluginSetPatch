@@ -93,6 +93,8 @@ namespace PluginSet.Patch
             BinaryFormatter bf = new BinaryFormatter();
             return (FileInfoList) bf.Deserialize(stream);
         }
+        
+        private static readonly EnumeratorLocker ManifestLoadAsyncLocker = new EnumeratorLocker();
 
         public string Name { get; protected set; }
         public string Version { get; protected set; }
@@ -136,8 +138,6 @@ namespace PluginSet.Patch
         
         private Dictionary<string, string> _fileNameMap = new Dictionary<string, string>();
         private Dictionary<string, string[]> _dependMap = new Dictionary<string, string[]>();
-        
-        private EnumeratorLocker _manifestLoadAsyncLocker = new EnumeratorLocker();
         
         public FileManifest(string name, byte[] buffer)
         {
@@ -215,10 +215,10 @@ namespace PluginSet.Patch
             if (_manifest != null)
                 yield break;
 
-            if (_manifestLoadAsyncLocker.Locked)
-                yield return _manifestLoadAsyncLocker;
+            if (ManifestLoadAsyncLocker.Locked)
+                yield return ManifestLoadAsyncLocker;
             
-            _manifestLoadAsyncLocker.Lock();
+            ManifestLoadAsyncLocker.Lock();
             var abRequest = AssetBundle.LoadFromMemoryAsync(_manifestBuffer);
             yield return abRequest;
             _manifestBuffer = null;
@@ -236,7 +236,7 @@ namespace PluginSet.Patch
             _manifest = manifestRequest.asset as AssetBundleManifest;
             
             ab.Unload(false);
-            _manifestLoadAsyncLocker.Unlock();
+            ManifestLoadAsyncLocker.Unlock();
             
             if (_manifest == null)
                 yield break;
