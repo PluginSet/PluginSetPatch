@@ -329,7 +329,7 @@ namespace PluginSet.Patch
                 yield break;
             }
 
-            if (contentRequest.isHttpError || contentRequest.isNetworkError)
+            if (contentRequest.result != UnityWebRequest.Result.Success)
             {
                 if (!IsLoaded)
                     Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName}, error: {contentRequest.error}");

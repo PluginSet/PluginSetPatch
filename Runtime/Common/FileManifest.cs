@@ -137,6 +137,8 @@ namespace PluginSet.Patch
         private Dictionary<string, string> _fileNameMap = new Dictionary<string, string>();
         private Dictionary<string, string[]> _dependMap = new Dictionary<string, string[]>();
         
+        private EnumeratorLocker _manifestLoadAsyncLocker = new EnumeratorLocker();
+        
         public FileManifest(string name, byte[] buffer)
         {
             Name = name;
@@ -210,6 +212,12 @@ namespace PluginSet.Patch
             if (_manifestBuffer == null)
                 yield break;
             
+            if (_manifest != null)
+                yield break;
+
+            yield return _manifestLoadAsyncLocker;
+            
+            _manifestLoadAsyncLocker.Lock();
             var abRequest = AssetBundle.LoadFromMemoryAsync(_manifestBuffer);
             yield return abRequest;
             _manifestBuffer = null;
@@ -227,6 +235,7 @@ namespace PluginSet.Patch
             _manifest = manifestRequest.asset as AssetBundleManifest;
             
             ab.Unload(false);
+            _manifestLoadAsyncLocker.Unlock();
             
             if (_manifest == null)
                 yield break;
