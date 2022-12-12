@@ -215,7 +215,8 @@ namespace PluginSet.Patch
             if (_manifest != null)
                 yield break;
 
-            yield return _manifestLoadAsyncLocker;
+            if (_manifestLoadAsyncLocker.Locked)
+                yield return _manifestLoadAsyncLocker;
             
             _manifestLoadAsyncLocker.Lock();
             var abRequest = AssetBundle.LoadFromMemoryAsync(_manifestBuffer);
