@@ -332,7 +332,7 @@ namespace PluginSet.Patch
             if (contentRequest.result != UnityWebRequest.Result.Success)
             {
                 if (!IsLoaded)
-                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName}, error: {contentRequest.error}");
+                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName}, error: {contentRequest.error}, url:{url}");
                 OnLoadedAssetBundle(_source);
                 yield break;
             }
