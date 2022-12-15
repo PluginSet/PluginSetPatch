@@ -14,7 +14,7 @@ namespace PluginSet.Patch
     {
         private const int MaxWriteLength = 4194304;
 
-        private const int CurrentVersion = 0;
+        private const int CurrentVersion = 1;
 
         private struct SaveJson
         {
@@ -55,7 +55,9 @@ namespace PluginSet.Patch
         /// <param name="version">版本号</param>
         /// <param name="fileMap">用来记录文件组</param>
         /// <param name="subPatches"></param>
-        public static void AppendFileInfo(AssetBundleManifest manifest, string path, string targetName, string version, ref Dictionary<string, FileInfo> fileMap, string[] subPatches = null)
+        /// <param name="tag">资源版本标识</param>
+        public static void AppendFileInfo(AssetBundleManifest manifest, string path, string targetName, string version
+            , ref Dictionary<string, FileInfo> fileMap, string[] subPatches = null, string tag = null)
         {
             var targetFileName = Path.Combine(path, targetName);
             byte[] targetContent = null;
@@ -153,6 +155,7 @@ namespace PluginSet.Patch
             WriteBytes(writeBuffer, stream.ToArray(), ref position);
             WriteString(writeBuffer, version, ref position);
             WriteString(writeBuffer, PluginUtil.GetMd5(writeBuffer, 0, position), ref position);
+            WriteString(writeBuffer, tag ?? string.Empty, ref position);
             if (subPatches == null)
             {
                 WriteInt(writeBuffer, 0, ref position);

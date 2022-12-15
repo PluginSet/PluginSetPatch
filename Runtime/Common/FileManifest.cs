@@ -98,6 +98,7 @@ namespace PluginSet.Patch
 
         public string Name { get; protected set; }
         public string Version { get; protected set; }
+        public string Tag { get; protected set; }
         
         public bool IsEmpty { get; protected set; }
         
@@ -169,6 +170,8 @@ namespace PluginSet.Patch
             var md5 = ReadString(buffer, ref position);
             if (!md5.Equals(calMd5))
                 Version = PluginUtil.GetVersionString("0", 0);
+            if (_fileVersion > 0)
+                Tag = ReadString(buffer, ref position);
             
             _fileInfoMap = new Dictionary<string, FileInfo>();
             foreach (var fileInfo in _fileInfoList.List)

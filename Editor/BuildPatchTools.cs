@@ -12,6 +12,30 @@ namespace PluginSet.Patch.Editor
     [BuildTools]
     public static class BuildPatchTools
     {
+        [CheckRebuildAssetBundles]
+        public static bool CheckRebuildAssetBundles(BuildProcessorContext context)
+        {
+            var streamPath = context.Get<string>("StreamingAssetsPath");
+            if (!Directory.Exists(streamPath))
+                return true;
+
+            var streamName = context.Get<string>("StreamingAssetsName");
+            var streamFile = Path.Combine(streamPath, streamName);
+            if (!File.Exists(streamFile))
+                return true;
+            
+            var version = PluginUtil.GetVersionString(context.VersionName, int.Parse(context.Build));
+            var fileManifest = FileManifest.LoadFileManifest(streamName, streamFile);
+            if (!version.Equals(fileManifest.Version))
+                return true;
+
+            if (string.IsNullOrEmpty(context.ResourceVersion))
+                return false;
+            
+            return !fileManifest.Tag.Equals(context.ResourceVersion);
+        }
+            
+        
         [AssetBundleFilePathsCollectorAttribute(int.MinValue)]
         public static void CollectAssetBundleFilePaths(BuildProcessorContext context, string bundleName,
             List<string> result)
@@ -99,6 +123,7 @@ namespace PluginSet.Patch.Editor
             
             context.BuildPatchesStart();
             var subPatches = new List<string>();
+            var allPatches = new List<string>();
 
 #region BuildPatches
             var patchPath = Path.Combine(Application.dataPath, "Patches");
@@ -167,14 +192,20 @@ namespace PluginSet.Patch.Editor
                     }
                     else if (!string.IsNullOrEmpty(context.BuildPath))
                     {
-                        Global.MoveAllFilesToPath(exportPath, Path.Combine(context.BuildPath, "Patches"));
+                        var patchesPath = Path.Combine(context.BuildPath, "Patches");
+                        context.SetBuildResult("patchesPath", Path.GetFullPath(patchesPath));
+                        Global.MoveAllFilesToPath(exportPath, patchesPath);
                     }
+                    allPatches.Add(info.Name);
                 }
                 
                 context.Set<string[]>("internalSubPatches", subPatches.ToArray());
-    #endregion
-                
+
+                #endregion
+
             }
+            
+            context.SetBuildResult("patchesName", allPatches);
 
             FileBundleInfo.TempBundleMap.Clear();
             fileMap.Clear();
@@ -237,7 +268,8 @@ namespace PluginSet.Patch.Editor
                 return;
             }
                 
-            FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version, ref map, subPatches);
+            FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version
+            , ref map, subPatches, context.ResourceVersion);
         }
 
         private static void CollectFileMap(in PathInfo[] paths,
