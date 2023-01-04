@@ -65,13 +65,13 @@ namespace PluginSet.Patch
             var content = File.ReadAllBytes(filePath);
             if (info.Size >= 0 && content.Length != info.Size)
             {
-                Debug.LogError($"CheckFileInfo size fail {filePath}: info={info.Size} size={ content.Length}");
+                Debug.LogWarning($"CheckFileInfo size fail {filePath}: info={info.Size} size={ content.Length}");
                 return false;
             }
 
             if (!string.IsNullOrEmpty(info.Md5) && !info.Md5.Equals(PluginUtil.GetMd5(content)))
             {
-                Debug.LogError($"CheckFileInfo md5 fail {filePath}: info={info.Md5} md5={PluginUtil.GetMd5(content)}");
+                Debug.LogWarning($"CheckFileInfo md5 fail {filePath}: info={info.Md5} md5={PluginUtil.GetMd5(content)}");
                 return false;
             }
 
