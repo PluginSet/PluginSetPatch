@@ -138,17 +138,7 @@ namespace PluginSet.Patch
 
         private IEnumerator OnDownloadApp()
         {
-#if UNITY_ANDROID
             Application.OpenURL(_downloadUrl);
-//            if(!UnityEngine.Android.Permission.HasUserAuthorizedPermission("android.permission.READ_EXTERNAL_STORAGE"))
-//                UnityEngine.Android.Permission.RequestUserPermission("android.permission.READ_EXTERNAL_STORAGE");
-//            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission("android.permission.WRITE_EXTERNAL_STORAGE"))
-//                UnityEngine.Android.Permission.RequestUserPermission("android.permission.WRITE_EXTERNAL_STORAGE");
-//            if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission("android.permission.REQUEST_INSTALL_PACKAGES"))
-//                UnityEngine.Android.Permission.RequestUserPermission("android.permission.REQUEST_INSTALL_PACKAGES");
-#elif UNITY_IOS
-#else
-#endif
             yield return OnCancelUpdate();
         }
 
