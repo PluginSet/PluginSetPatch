@@ -136,7 +136,7 @@ namespace PluginSet.Patch.Editor
             var streamPath = context.Get<string>("StreamingAssetsPath");
             if (!Directory.Exists(streamPath))
                 Directory.CreateDirectory(streamPath);
-                    
+            
             FileBundleInfo.BuildType = buildParams.BuildType;
             PatchInfo[] patchInfos = buildParams.Patches;
             if (patchInfos != null)
