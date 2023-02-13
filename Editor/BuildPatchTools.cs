@@ -15,11 +15,14 @@ namespace PluginSet.Patch.Editor
         [CheckRebuildAssetBundles]
         public static bool CheckRebuildAssetBundles(BuildProcessorContext context)
         {
-            var streamPath = context.Get<string>("StreamingAssetsPath");
+            var streamName = context.StreamingAssetsName;
+            if (string.IsNullOrEmpty(streamName))
+                return false;
+            
+            var streamPath = context.StreamingAssetsPath;
             if (!Directory.Exists(streamPath))
                 return true;
 
-            var streamName = context.Get<string>("StreamingAssetsName");
             var streamFile = Path.Combine(streamPath, streamName);
             if (!File.Exists(streamFile))
                 return true;
@@ -133,7 +136,10 @@ namespace PluginSet.Patch.Editor
             
             var invalidList = context.TryGet<List<string>>("invalidAssets", new List<string>());
             var depFileBundleName = context.TryGet("depFileBundleName", new Dictionary<string, string>());
-            var streamPath = context.Get<string>("StreamingAssetsPath");
+            var streamPath = context.StreamingAssetsPath;
+            if (string.IsNullOrEmpty(streamPath))
+                return;
+            
             if (!Directory.Exists(streamPath))
                 Directory.CreateDirectory(streamPath);
             
