@@ -34,7 +34,7 @@ namespace PluginSet.Patch
         {
             request.completed -= OnFileBufferDownloaded;
 
-            if (_request.isHttpError || _request.isNetworkError)
+            if (_request.result != UnityWebRequest.Result.Success)
             {
                 Debug.LogWarning($"LoadFileManifest HttpError:{_request.error}");
                 result = null;

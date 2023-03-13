@@ -103,7 +103,7 @@ namespace PluginSet.Patch
             _request = null;
             
             var request = ((UnityWebRequestAsyncOperation) operation).webRequest;
-            if (request.isHttpError || request.isNetworkError)
+            if (request.result != UnityWebRequest.Result.Success)
             {
                 _errorTimes += 1;
                 OnDownloadError?.Invoke(this, request.error);
