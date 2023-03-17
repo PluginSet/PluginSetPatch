@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using PluginSet.Core;
 using System.IO;
@@ -50,7 +51,11 @@ namespace PluginSet.Patch
             string streamingName = manager.StreamingAssetsName;
 
             var prefix = ResourcesManager.StreamingInternalUrlPrefix;
-            var internalRequest = FileManifest.RequestFileManifest(string.Empty, prefix + streamingName);
+            var internalUrl = prefix + streamingName;
+#if UNITY_WEBGL
+            internalUrl += "?time=" + DateTime.Now;
+#endif
+            var internalRequest = FileManifest.RequestFileManifest(string.Empty, internalUrl);
             yield return internalRequest;
             var fileManifest = internalRequest.result;
 
