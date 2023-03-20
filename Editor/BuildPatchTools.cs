@@ -43,7 +43,7 @@ namespace PluginSet.Patch.Editor
         public static void CollectAssetBundleFilePaths(BuildProcessorContext context, string bundleName,
             List<string> result)
         {
-            var buildParams = context.BuildChannels.Get<BuildPatchParams>("Patch");
+            var buildParams = context.BuildChannels.Get<BuildPatchParams>();
             foreach (var path in buildParams.StreamingPaths.Concat(buildParams.Patches.Where(patch=>!patch.Ignore).SelectMany(patch => patch.Paths)))
             {
                 if (path.UseResourceLoad)
@@ -64,7 +64,7 @@ namespace PluginSet.Patch.Editor
         [OnBuildPatches(int.MinValue)]
         public static void CollectInvalidAssets(BuildProcessorContext context)
         {
-            var buildParams = context.BuildChannels.Get<BuildPatchParams>("Patch");
+            var buildParams = context.BuildChannels.Get<BuildPatchParams>();
             context.Set("streamingPaths", buildParams.StreamingPaths);
             // 定义依赖资源名称对应的bundle名称
             context.Set("depFileBundleName", new Dictionary<string, string>());
@@ -122,7 +122,7 @@ namespace PluginSet.Patch.Editor
             }
 
             var isBuildUpdatePatch = context.IsBuildingUpdatePatches();
-            var buildParams = context.BuildChannels.Get<BuildPatchParams>("Patch");
+            var buildParams = context.BuildChannels.Get<BuildPatchParams>();
             
             context.BuildPatchesStart();
             var subPatches = new List<string>();

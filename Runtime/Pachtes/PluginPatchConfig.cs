@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace PluginSet.Patch
 {
-    [PluginSetConfig("Patch")]
     public class PluginPatchConfig: ScriptableObject
     {
         public bool ContinueIfUpdateFail;

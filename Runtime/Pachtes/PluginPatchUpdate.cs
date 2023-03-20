@@ -23,7 +23,7 @@ namespace PluginSet.Patch
 
         protected override void Init(PluginSetConfig config)
         {
-            var cfg = config.Get<PluginPatchConfig>("Patch");
+            var cfg = config.Get<PluginPatchConfig>();
             _continueIfUpdateFail = cfg.ContinueIfUpdateFail;
         }
 

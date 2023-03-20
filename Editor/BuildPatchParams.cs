@@ -56,7 +56,7 @@ namespace PluginSet.Patch.Editor
         {
             context.AddLinkAssembly("PluginSet.Patch");
             
-            var buildParams = context.BuildChannels.Get<BuildPatchParams>("Patch");
+            var buildParams = context.BuildChannels.Get<BuildPatchParams>();
             if (buildParams.DisablePatchUpdate)
                 context.Symbols.Add("DISABLE_PATCH_UPDATE");
             if (buildParams.EnableLoadAssetWithName)
@@ -65,7 +65,7 @@ namespace PluginSet.Patch.Editor
                 context.Symbols.Add("CHECK_RESOURCES_WHEN_BUILD_PATCH");
             
             var pluginConfig = context.Get<PluginSetConfig>("pluginsConfig");
-            var config = pluginConfig.Get<PluginPatchConfig>("Patch");
+            var config = pluginConfig.AddConfig<PluginPatchConfig>("Patch");
             config.ContinueIfUpdateFail = buildParams.ContinueIfUpdateFail;
             config.StreamPaths = buildParams.StreamingPaths;
             config.Patches = buildParams.Patches;

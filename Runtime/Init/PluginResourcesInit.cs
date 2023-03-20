@@ -31,7 +31,7 @@ namespace PluginSet.Patch
         {
             //ResourcesManager.NewInstance<PatchResourcesManager>();
 #if UNITY_EDITOR
-            var cfg = config.Get<PluginPatchConfig>("Patch");
+            var cfg = config.Get<PluginPatchConfig>();
             _patchInfos = cfg.Patches;
             _streamPaths = cfg.StreamPaths;
 #endif
