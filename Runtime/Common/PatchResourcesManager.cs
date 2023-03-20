@@ -567,7 +567,8 @@ namespace PluginSet.Patch
                     if (tempRef.ContainAsset(assetName))
                     {
                         manifest = mani;
-                        _assetManifests.Add(key, mani);
+                        if (!_assetManifests.ContainsKey(key))
+                            _assetManifests.Add(key, mani);
                         break;
                     }
                 }
