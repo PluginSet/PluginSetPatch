@@ -260,6 +260,7 @@ namespace PluginSet.Patch
 
             var streamingPath = Path.Combine(_savePath, _streamingName);
             _fileManifest.SaveTo(streamingPath);
+            Devices.SyncFileSystem();
         }
 
         private void OnFileDownloadSuccess(FileDownloader downloader)

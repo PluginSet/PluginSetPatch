@@ -318,6 +318,22 @@ namespace PluginSet.Patch
                 yield break;
             
             _isLoading = true;
+            
+#if UNITY_WEBGL
+            var file = Path.Combine(ResourcesManager.PatchesSavePath, _fileInfo.FileName);
+            byte[] content = null;
+            if (File.Exists(file))
+            {
+                content = File.ReadAllBytes(file);
+            }
+            else
+            {
+                if (!IsLoaded)
+                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName}, error: file {file} not exist");
+                OnLoadedAssetBundle(_source);
+                yield break;
+            }
+#else
             var url = ResourcesManager.PatchesSavePathUrlPrefix + _fileInfo.FileName;
             var contentRequest = new UnityWebRequest(url, "GET", new DownloadHandlerBuffer(), null);
             _contentRequest = contentRequest;
@@ -339,6 +355,7 @@ namespace PluginSet.Patch
 
             var content = contentRequest.downloadHandler.data;
             _contentRequest = null;
+#endif
             
             content = AssetBundleEncryption.DecryptBytes(content, _fileInfo.BundleHash);
 
