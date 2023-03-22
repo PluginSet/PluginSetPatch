@@ -221,6 +221,7 @@ namespace PluginSet.Patch.Editor
             var addFiles = context.TryGet<List<string>>("UpdatePatchAddFiles", null);
             CollectResources(modFiles, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
             CollectResources(addFiles, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+            context.SetBuildResult("CollectedResources", string.Join(",", fileMap.Keys));
 
             foreach (var bundleName in AssetDatabase.GetAllAssetBundleNames())
             {
