@@ -248,7 +248,7 @@ namespace PluginSet.Patch.Editor
         
         [OnBuildBundlesCompleted]
         public static void OnBuildBundlesCompleted(BuildProcessorContext context, string streamingPath,
-            string streamingName, AssetBundleManifest manifest, bool isCreate = false)
+            string streamingName, AssetBundleManifest manifest, bool patchBundle = false)
         {
             var bundleInfos = context.TryGet<BundleInfo[]>("patchBundleRevertInfo", null);
             // 还原bundleInfo
@@ -272,11 +272,17 @@ namespace PluginSet.Patch.Editor
                 {
                     FileManifest.AppendFileInfo(streamingPath, streamingName, version, ref map, subPatches);
                 }
-                return;
             }
-                
-            FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version
-            , ref map, subPatches, context.ResourceVersion);
+            else
+            {
+                FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version , ref map, subPatches, context.ResourceVersion);
+            }
+
+            if (patchBundle)
+            {
+                var fileName = Path.Combine(streamingPath, streamingName);
+                File.Move(fileName, Path.Combine(streamingPath, $"{streamingName}_{version}"));
+            }
         }
 
         private static void CollectFileMap(in PathInfo[] paths,
