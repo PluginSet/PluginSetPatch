@@ -371,8 +371,16 @@ namespace PluginSet.Patch.Editor
 
             if (useResourceLoad)
                 bundleName = PatchUtil.GetResourceAssetBundleName(bundleName);
-            var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
-            CollectFileMapWithFiles(bundleName, files, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+
+            if (File.Exists(path))
+            {
+                CollectFileMapWithFiles(bundleName, new []{ path }, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+            }
+            else
+            {
+                var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                CollectFileMapWithFiles(bundleName, files, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+            }
             return bundleName;
         }
 
