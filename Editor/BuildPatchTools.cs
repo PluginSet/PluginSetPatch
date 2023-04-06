@@ -278,12 +278,6 @@ namespace PluginSet.Patch.Editor
             {
                 FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version , ref map, subPatches, context.ResourceVersion);
             }
-
-            if (patchBundle)
-            {
-                var fileName = Path.Combine(streamingPath, streamingName);
-                File.Move(fileName, Path.Combine(streamingPath, $"{streamingName}_{version}"));
-            }
         }
 
         private static void CollectFileMap(in PathInfo[] paths,
