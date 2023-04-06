@@ -53,7 +53,7 @@ namespace PluginSet.Patch
             var prefix = ResourcesManager.StreamingInternalUrlPrefix;
             var internalUrl = prefix + streamingName;
 #if UNITY_WEBGL
-            internalUrl += "?time=" + DateTime.Now;
+            internalUrl += "?time=" + DateTime.Now.Ticks;
 #endif
             var internalRequest = FileManifest.RequestFileManifest(string.Empty, internalUrl);
             yield return internalRequest;
