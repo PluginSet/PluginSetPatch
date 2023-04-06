@@ -49,11 +49,12 @@ namespace PluginSet.Patch.Editor
                 if (path.UseResourceLoad)
                     continue;
 
+                var pathName = Path.GetFileName(path.Path)?.ToLower();
                 if (string.IsNullOrEmpty(path.BundleName))
                 {
-                    if (bundleName.ToLower().Equals(Path.GetFileName(path.Path)?.ToLower()))
+                    if (bundleName.ToLower().Equals(pathName))
                         result.Add(path.Path);
-                } else if (path.BundleName.ToLower().Equals(bundleName.ToLower()))
+                } else if (bundleName.ToLower().Equals(string.Format(path.BundleName, pathName).ToLower()))
                 {
                     result.Add(path.Path);
                 }
@@ -302,9 +303,11 @@ namespace PluginSet.Patch.Editor
                 {
                     case PathBuildType.AllInBundle:
                     {
-                        var bundleName = pathInfo.BundleName;
+                        var bundleName = Path.GetFileName(path)?.ToLower();
+                        if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                            bundleName = string.Format(pathInfo.BundleName, bundleName);
                         if (!string.IsNullOrEmpty(path))
-                            bundleName = CollectFileMapWithPath(pathInfo.BundleName, pathInfo.UseResourceLoad, path
+                            bundleName = CollectFileMapWithPath(bundleName, pathInfo.UseResourceLoad, path
                                 , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
 
                         if (pathInfo.FileList != null)

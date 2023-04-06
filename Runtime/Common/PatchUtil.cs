@@ -342,9 +342,10 @@ namespace PluginSet.Patch
                     }
                     else if (pathInfo.BuildType == PathBuildType.AllInBundle)
                     {
-                        var pathBundleName = pathInfo.BundleName;
-                        if (string.IsNullOrEmpty(pathBundleName))
-                            pathBundleName = Path.GetFileName(pathInfo.Path)?.ToLower();
+                    
+                        var pathBundleName = Path.GetFileNameWithoutExtension(pathInfo.Path)?.ToLower();
+                        if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                            pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
 
                         if (bundleName.Equals(pathBundleName))
                             return true;
@@ -454,9 +455,9 @@ namespace PluginSet.Patch
                     }
                     else if (pathInfo.BuildType == PathBuildType.AllInBundle)
                     {
-                        var pathBundleName = pathInfo.BundleName;
-                        if (string.IsNullOrEmpty(pathBundleName))
-                            pathBundleName = Path.GetFileName(pathInfo.Path)?.ToLower();
+                        var pathBundleName = Path.GetFileNameWithoutExtension(pathInfo.Path)?.ToLower();
+                        if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                            pathBundleName = string.Format(pathInfo.BundleName, pathBundleName);
                         
                         if (!bundleName.Equals(pathBundleName))
                             continue;
