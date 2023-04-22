@@ -74,6 +74,9 @@ namespace PluginSet.Patch.Editor
 
         private void OnEnable()
         {
+            if (EditorApplication.isUpdating)
+                return;
+            
             FixOldVersionValue();
         }
 
@@ -82,12 +85,13 @@ namespace PluginSet.Patch.Editor
             bool dirty = FixPathInfo(StreamingPaths);
             if (FixPatchInfo(Patches))
                 dirty = true;
-            
+
             if (dirty)
+            {
                 EditorUtility.SetDirty(this);
-            
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+            }
         }
 
         private bool FixPathInfo(PathInfo[] pathInfos)
