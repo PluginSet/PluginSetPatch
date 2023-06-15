@@ -242,7 +242,7 @@ namespace PluginSet.Patch
                 
                 foreach (var searchPath in manager.SearchPaths)
                 {
-                    if (pathInfos.TryGetValue(searchPath.ToLower(), out var paths))
+                    if (pathInfos.TryGetValue(searchPath, out var paths))
                     {
                         foreach (var pathInfo in paths)
                         {
