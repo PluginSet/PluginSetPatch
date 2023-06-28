@@ -430,7 +430,7 @@ namespace PluginSet.Patch
                     _source.Unload(true);
                 
                 _source = assetBundle;
-                _sourceIsNull = _source;
+                _sourceIsNull = !_source;
                 _assetPaths.Clear();
                 _sourceAssetNames = _sourceIsNull ? null : _source.GetAllAssetNames();
 #if DEBUG
