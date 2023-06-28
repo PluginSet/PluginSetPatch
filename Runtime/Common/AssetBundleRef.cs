@@ -202,10 +202,9 @@ namespace PluginSet.Patch
             {
                 // 引擎会在异步加载时强制转换为同步加载返回AssetBundle
                 result = _createRequest.assetBundle;
-                if (result != null)
+                if (result)
                 {
-                    OnLoadedAssetBundle(result);
-                    return result;
+                    return OnLoadedAssetBundle(result);
                 }
             }
             
@@ -219,7 +218,7 @@ namespace PluginSet.Patch
                 result = AssetBundle.LoadFromMemory(content);
             }
             
-            OnLoadedAssetBundle(result);
+            result = OnLoadedAssetBundle(result);
             request?.Abort();
             return result;
         }
@@ -369,13 +368,11 @@ namespace PluginSet.Patch
         {
             RemoveLoadedRef(this);
             _contentRequest?.Abort();
-            _isReleased = true;
+            _loadCompleted = null;
             SetDependencies(null);
             _hasSetDepends = false;
-            var bundle = _source;
             OnLoadedAssetBundle(null);
-            if (bundle != null)
-                bundle.Unload(true);
+            _isReleased = true;
         }
 
         public bool ContainAsset(string assetName)
@@ -410,17 +407,30 @@ namespace PluginSet.Patch
             return findPath;
         }
 
-        protected void OnLoadedAssetBundle(AssetBundle assetBundle)
+        protected AssetBundle OnLoadedAssetBundle(AssetBundle assetBundle)
         {
             _createRequest = null;
             _contentRequest = null;
+            _isLoading = false;
+            _isWaiting = false;
+
+            if (_isReleased)
+            {
+                if (assetBundle)
+                    assetBundle.Unload(true);
+                return null;
+            }
+            
             if (_source != assetBundle)
             {
 #if DEBUG
                 AssetCount -= _sourceAssetNames?.Length ?? 0;
 #endif
+                if (_source)
+                    _source.Unload(true);
+                
                 _source = assetBundle;
-                _sourceIsNull = _source == null;
+                _sourceIsNull = _source;
                 _assetPaths.Clear();
                 _sourceAssetNames = _sourceIsNull ? null : _source.GetAllAssetNames();
 #if DEBUG
@@ -428,10 +438,9 @@ namespace PluginSet.Patch
 #endif
             }
             
-            _isLoading = false;
-            _isWaiting = false;
             _loadCompleted?.Invoke(_source);
             _loadCompleted = null;
+            return assetBundle;
         }
     }
 
