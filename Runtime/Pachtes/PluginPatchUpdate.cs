@@ -67,20 +67,23 @@ namespace PluginSet.Patch
             if (result == CheckResult.DownloadApp)
             {
                 _downloadUrl = context.Get<string>(PluginConstants.PATCH_DOWNLOAD_APP_URL);
-                
-                var operation = WaitingForOperation.Get(OnDownloadApp, OnCancelUpdate);
-                context.Confirm = operation.Confirm;
-                context.Cancel = operation.Cancel;
 
-                if (NotifyAnyOne(PluginConstants.PATCH_NOTIFY_REQUEST_DOWNLOAD_APP, context))
+                while (!_updateCompleted)
                 {
-                    yield return operation.Wait();
+                    var operation = WaitingForOperation.Get(OnDownloadApp, OnCancelUpdate);
+                    context.Confirm = operation.Confirm;
+                    context.Cancel = operation.Cancel;
+
+                    if (NotifyAnyOne(PluginConstants.PATCH_NOTIFY_REQUEST_DOWNLOAD_APP, context))
+                    {
+                        yield return operation.Wait();
+                    }
+                    else
+                    {
+                        yield return OnDownloadApp();
+                    }
+                    WaitingForOperation.Return(operation);
                 }
-                else
-                {
-                    yield return OnDownloadApp();
-                }
-                WaitingForOperation.Return(operation);
             }
             else if (result == CheckResult.DownloadPatches)
             {
@@ -139,7 +142,7 @@ namespace PluginSet.Patch
         private IEnumerator OnDownloadApp()
         {
             Application.OpenURL(_downloadUrl);
-            yield return OnCancelUpdate();
+            yield return null;
         }
 
         private PatchesDownloader CreateDownloader()
