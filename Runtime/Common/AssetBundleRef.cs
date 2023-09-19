@@ -16,7 +16,7 @@ namespace PluginSet.Patch
     {
         private static readonly Logger Logger = LoggerManager.GetLogger("AssetBundleRef");
         
-        private static Dictionary<string, AssetBundleRef> s_loadedRefs = new Dictionary<string, AssetBundleRef>();
+        private static readonly Dictionary<string, AssetBundleRef> LoadedRefs = new Dictionary<string, AssetBundleRef>();
 
         private static string FindString(IEnumerable<string> elements, Func<string, bool> match)
         {
@@ -31,43 +31,65 @@ namespace PluginSet.Patch
 
         public static AssetBundleRef GetLoadedAssetBundle(string name)
         {
-            if (s_loadedRefs.TryGetValue(name, out var result))
-                return result;
+            if (LoadedRefs.TryGetValue(name, out var result))
+            {
+                return result._isReleased ? null : result;
+            }
             
             return null;
         }
 
+        public static AssetBundleRef GetAssetBundleRef(string name, FileManifest.FileInfo fileInfo)
+        {
+            if (LoadedRefs.TryGetValue(name, out var result))
+            {
+                if (result._isReleased)
+                    result.Use(fileInfo);
+                return result;
+            }
+
+            result = new AssetBundleRef(name);
+            result.Use(fileInfo);
+            LoadedRefs.Add(name, result);
+            return result;
+        }
+
+        public static AssetBundleRef FindLoadedAsset(Object asset)
+        {
+            foreach (var loader in LoadedRefs.Values)
+            {
+                if (loader._isReleased)
+                    continue;
+                
+                if (loader._loadedAssets.Contains(asset))
+                    return loader;
+            }
+
+            return null;
+        }
+        
+
         public static void UnloadWithTag(string tag)
         {
-            var keys = s_loadedRefs.Where(kv => kv.Value.Tag.Equals(tag)).Select(kv => kv.Key).ToArray();
+            var keys = LoadedRefs.Where(kv => kv.Value.Tag.Equals(tag)).Select(kv => kv.Key).ToArray();
             foreach (var key in keys)
             {
-                if (s_loadedRefs.TryGetValue(key, out var abRef))
+                if (LoadedRefs.TryGetValue(key, out var abRef))
                 {
                     abRef.Unload();
-                    s_loadedRefs.Remove(key);
                 }
             }
         }
 
         public static void UnloadAll()
         {
-            s_loadedRefs.Clear();
+            foreach (var loadedRef in LoadedRefs)
+            {
+                loadedRef.Value.Unload();
+            }
             AssetBundle.UnloadAllAssetBundles(true);
         }
-
-        private static void AddLoadedRef(AssetBundleRef abRef)
-        {
-            s_loadedRefs[abRef._name] = abRef;
-        }
-
-        private static void RemoveLoadedRef(AssetBundleRef abRef)
-        {
-            var name = abRef._name;
-            if (s_loadedRefs.ContainsKey(name))
-                s_loadedRefs.Remove(name);
-        }
-
+        
 #if DEBUG
         internal static int AssetCount = 0;
 #endif
@@ -75,6 +97,7 @@ namespace PluginSet.Patch
         private AssetBundle _source = null;
         private bool _sourceIsNull = true;
         private List<AssetBundleRef> _depends = null;
+        private readonly HashSet<Object> _loadedAssets = new HashSet<Object>();
         
         private int _reference = 0;
         private bool _isAutoRelease = false;
@@ -86,14 +109,14 @@ namespace PluginSet.Patch
         private UnityWebRequest _contentRequest;
         private AssetBundleCreateRequest _createRequest;
         
-        private string _name;
+        private readonly string _name;
         private FileManifest.FileInfo _fileInfo;
         private bool _isWaiting;
 
         private string[] _sourceAssetNames = null;
-        private Dictionary<string, string> _assetPaths = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _assetPaths = new Dictionary<string, string>();
         
-        private event Action<AssetBundle> _loadCompleted;
+        private event Action<AssetBundle> LoadCompleted;
 
         public override bool keepWaiting => _isWaiting;
         
@@ -114,13 +137,9 @@ namespace PluginSet.Patch
 
         public bool IsSceneBundle => !_sourceIsNull && _source.isStreamedSceneAssetBundle;
         
-        public AssetBundleRef(string name, FileManifest.FileInfo fileInfo)
+        private AssetBundleRef(string name)
         {
             _name = name;
-            _fileInfo = fileInfo;
-            _isWaiting = true;
-            _reference = 1;
-            AddLoadedRef(this);
         }
 
         public AssetBundleRef Retain()
@@ -196,7 +215,7 @@ namespace PluginSet.Patch
         {
             if (IsLoaded)
                 return _source;
-            
+
             AssetBundle result = null;
             if (_createRequest != null)
             {
@@ -229,14 +248,16 @@ namespace PluginSet.Patch
                 return null;
 
 #if ENABLE_LOAD_ASSET_WITH_NAME
-            return _source.LoadAsset(name, type);
+            var asset = _source.LoadAsset(name, type);
 #else
             var path = FindAssetPath(name);
             if (string.IsNullOrEmpty(path))
                 return null;
             
-            return _source.LoadAsset(path, type);
+            var asset = _source.LoadAsset(path, type);
 #endif
+            _loadedAssets.Add(asset);
+            return asset;
         }
 
         public T LoadAsset<T>(string name) where T : Object
@@ -247,12 +268,14 @@ namespace PluginSet.Patch
         public T[] LoadAllAssets<T>() where T : Object
         {
             var assets = _source.LoadAllAssets<T>();
+            _loadedAssets.UnionWith(assets);
             return assets;
         }
         
         public UnityEngine.Object[] LoadAllAssets(Type type)
         {
             var assets = _source.LoadAllAssets(type);
+            _loadedAssets.UnionWith(assets);
             return assets;
         }
         
@@ -272,6 +295,10 @@ namespace PluginSet.Patch
             
             var request = _source.LoadAllAssetsAsync<T>();
             yield return request;
+            if (request.allAssets != null)
+            {
+                _loadedAssets.UnionWith(request.allAssets);
+            }
         }
         
 
@@ -282,6 +309,10 @@ namespace PluginSet.Patch
             
             var request = _source.LoadAllAssetsAsync(type);
             yield return request;
+            if (request.allAssets != null)
+            {
+                _loadedAssets.UnionWith(request.allAssets);
+            }
         }
         
         public IEnumerator LoadAssetAsync(string name, Type type)
@@ -303,6 +334,7 @@ namespace PluginSet.Patch
             {
                 throw new Exception($"Cannot load asset {name} in AssetBundle {_name}");
             }
+            _loadedAssets.Add(request.asset);
         }
 
         public IEnumerator LoadAssetAsync<T>(string name) where T : Object
@@ -312,7 +344,7 @@ namespace PluginSet.Patch
         
         public IEnumerator LoadAsync(Action<AssetBundle> callback)
         {
-            _loadCompleted += callback;
+            LoadCompleted += callback;
             if (_isLoading)
                 yield break;
             
@@ -355,23 +387,32 @@ namespace PluginSet.Patch
             var content = contentRequest.downloadHandler.data;
             _contentRequest = null;
 #endif
+            if (IsLoaded || _isReleased)
+                yield break;
             
             content = AssetBundleEncryption.DecryptBytes(content, _fileInfo.BundleHash);
-
             var createRequest = _createRequest = AssetBundle.LoadFromMemoryAsync(content);
             yield return createRequest;
             var result = createRequest.assetBundle;
             OnLoadedAssetBundle(result != null ? result : _source);
         }
-        
-        public void Unload()
+
+        private void Use(FileManifest.FileInfo fileInfo)
         {
-            RemoveLoadedRef(this);
-            _contentRequest?.Abort();
-            _loadCompleted = null;
+            _isWaiting = true;
+            _fileInfo = fileInfo;
+            _isReleased = false;
+            _reference = _isAutoRelease ? 0 : 1;
+        }
+        
+        private void Unload()
+        {
+            // _contentRequest?.Abort();
+            // _contentRequest = null;
+            LoadCompleted = null;
             SetDependencies(null);
             _hasSetDepends = false;
-            OnLoadedAssetBundle(null);
+            OnLoadedAssetBundle(null, false);
             _isReleased = true;
         }
 
@@ -407,12 +448,15 @@ namespace PluginSet.Patch
             return findPath;
         }
 
-        protected AssetBundle OnLoadedAssetBundle(AssetBundle assetBundle)
+        private AssetBundle OnLoadedAssetBundle(AssetBundle assetBundle, bool completedLoading = true)
         {
-            _createRequest = null;
-            _contentRequest = null;
-            _isLoading = false;
             _isWaiting = false;
+            if (completedLoading)
+            {
+                _contentRequest = null;
+                _isLoading = false;
+                _createRequest = null;
+            }
 
             if (_isReleased)
             {
@@ -429,6 +473,7 @@ namespace PluginSet.Patch
                 if (_source)
                     _source.Unload(true);
                 
+                _loadedAssets.Clear();
                 _source = assetBundle;
                 _sourceIsNull = !_source;
                 _assetPaths.Clear();
@@ -438,8 +483,8 @@ namespace PluginSet.Patch
 #endif
             }
             
-            _loadCompleted?.Invoke(_source);
-            _loadCompleted = null;
+            LoadCompleted?.Invoke(_source);
+            LoadCompleted = null;
             return assetBundle;
         }
     }

@@ -289,6 +289,24 @@ namespace PluginSet.Patch
             return abRef.LoadAsset(assetName, type);
         }
 
+        public override AssetBundle GetAssetBundle(Object asset)
+        {
+            var abRef = AssetBundleRef.FindLoadedAsset(asset);
+            return abRef?.Source;
+        }
+
+        public override void RetainAsset(Object asset)
+        {
+            var abRef = AssetBundleRef.FindLoadedAsset(asset);
+            abRef?.Retain();
+        }
+
+        public override void ReleaseAsset(Object asset)
+        {
+            var abRef = AssetBundleRef.FindLoadedAsset(asset);
+            abRef?.Release();
+        }
+
         public override AsyncOperationHandle<T> LoadAssetAsync<T>(string bundleName, string assetName)
         {
             return LoadAssetAsync<T>(bundleName, assetName, null);
@@ -430,7 +448,7 @@ namespace PluginSet.Patch
                 if (!manifest.GetFileInfo(realName, out var fileInfo))
                     throw new Exception("Cannot get file info with " + realName);
 
-                abRef = new AssetBundleRef(realName, fileInfo);
+                abRef = AssetBundleRef.GetAssetBundleRef(realName, fileInfo);
                 abRef.Tag = manifest.Name;
                 abRef.AutoRelease();
 
