@@ -153,6 +153,7 @@ namespace PluginSet.Patch
             {
                 ResourceVersion = version;
             }
+            AssetBundleRef.ResourcesVersion = version;
         }
 
         public override Object Load(string path, Type type)

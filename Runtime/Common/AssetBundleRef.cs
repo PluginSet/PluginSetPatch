@@ -28,10 +28,20 @@ namespace PluginSet.Patch
 
             return string.Empty;
         }
+        
+        internal static string ResourcesVersion { get; set; }
+
+        private static string GetLoadedRefKey(string name)
+        {
+            if (string.IsNullOrEmpty(ResourcesVersion))
+                Debug.LogWarning("AssetBundleRef ResourcesVersion is empty!");
+            return $"{name}_{ResourcesVersion}";
+        }
 
         public static AssetBundleRef GetLoadedAssetBundle(string name)
         {
-            if (LoadedRefs.TryGetValue(name, out var result))
+            var key = GetLoadedRefKey(name);
+            if (LoadedRefs.TryGetValue(key, out var result))
             {
                 return result._isReleased ? null : result;
             }
@@ -41,7 +51,8 @@ namespace PluginSet.Patch
 
         public static AssetBundleRef GetAssetBundleRef(string name, FileManifest.FileInfo fileInfo)
         {
-            if (LoadedRefs.TryGetValue(name, out var result))
+            var key = GetLoadedRefKey(name);
+            if (LoadedRefs.TryGetValue(key, out var result))
             {
                 if (result._isReleased)
                     result.Use(fileInfo);
@@ -50,7 +61,7 @@ namespace PluginSet.Patch
 
             result = new AssetBundleRef(name);
             result.Use(fileInfo);
-            LoadedRefs.Add(name, result);
+            LoadedRefs.Add(key, result);
             return result;
         }
 
