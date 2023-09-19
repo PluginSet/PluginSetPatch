@@ -100,7 +100,7 @@ namespace PluginSet.Patch
         public string Tag { get; set; }
         
         public AssetBundle Source => _source;
-        public bool IsNull => _sourceIsNull;
+        public bool IsFail => _sourceIsNull && !_isReleased;
         
         public override string ToString()
         {

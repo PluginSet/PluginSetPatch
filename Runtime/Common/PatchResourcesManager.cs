@@ -511,7 +511,7 @@ namespace PluginSet.Patch
             yield return abRef;
 
 #if UNITY_EDITOR
-            if (abRef.IsNull)
+            if (abRef.IsFail)
             {
 //                Debug.LogError("Failed to load AssetBundle => " + name);
                 throw new Exception($"Failed to load AssetBundle name:{name}");
