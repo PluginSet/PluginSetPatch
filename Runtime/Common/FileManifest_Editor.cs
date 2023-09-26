@@ -14,7 +14,7 @@ namespace PluginSet.Patch
     {
         private const int MaxWriteLength = 4194304;
 
-        private const int CurrentVersion = 1;
+        private const int CurrentVersion = 2;
 
         private struct SaveJson
         {
@@ -156,6 +156,7 @@ namespace PluginSet.Patch
             WriteString(writeBuffer, version, ref position);
             WriteString(writeBuffer, PluginUtil.GetMd5(writeBuffer, 0, position), ref position);
             WriteString(writeBuffer, tag ?? string.Empty, ref position);
+            
             if (subPatches == null)
             {
                 WriteInt(writeBuffer, 0, ref position);
@@ -168,6 +169,16 @@ namespace PluginSet.Patch
                 {
                     WriteString(writeBuffer, sub, ref position);
                 }
+            }
+            
+            WriteInt(writeBuffer, fileList.List.Count, ref position);
+            foreach (var fileInfo in fileList.List)
+            {
+                WriteString(writeBuffer, fileInfo.Name, ref position);
+                WriteString(writeBuffer, fileInfo.FileName, ref position);
+                WriteInt(writeBuffer, fileInfo.Size, ref position);
+                WriteString(writeBuffer, fileInfo.Md5, ref position);
+                WriteString(writeBuffer, fileInfo.BundleHash, ref position);
             }
 
             var buffer = new byte[position];

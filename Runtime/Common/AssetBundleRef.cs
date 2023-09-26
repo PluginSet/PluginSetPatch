@@ -371,7 +371,7 @@ namespace PluginSet.Patch
             else
             {
                 if (!IsLoaded)
-                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName}, error: file {file} not exist");
+                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName} md5:{_fileInfo.Md5}, error: file {file} not exist");
                 OnLoadedAssetBundle(_source);
                 yield break;
             }
@@ -390,7 +390,7 @@ namespace PluginSet.Patch
             if (contentRequest.result != UnityWebRequest.Result.Success)
             {
                 if (!IsLoaded)
-                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName}, error: {contentRequest.error}, url:{url}");
+                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName} md5:{_fileInfo.Md5}, error: {contentRequest.error}, url:{url}");
                 OnLoadedAssetBundle(_source);
                 yield break;
             }

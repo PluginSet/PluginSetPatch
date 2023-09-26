@@ -173,17 +173,36 @@ namespace PluginSet.Patch
             if (_fileVersion > 0)
                 Tag = ReadString(buffer, ref position);
             
-            _fileInfoMap = new Dictionary<string, FileInfo>();
-            foreach (var fileInfo in _fileInfoList.List)
-            {
-                _fileInfoMap[fileInfo.Name] = fileInfo;
-            }
-
             var subCount = ReadInt(buffer, ref position);
             SubPatches = new string[subCount];
             for (int i = 0; i < subCount; i++)
             {
                 SubPatches[i] = ReadString(buffer, ref position);
+            }
+
+            _fileInfoMap = new Dictionary<string, FileInfo>();
+            if (_fileVersion > 1)
+            {
+                var fileCount = ReadInt(buffer, ref position);
+                for (int i = 0; i < fileCount; i++)
+                {
+                    var fileInfo = new FileInfo
+                    {
+                        Name = ReadString(buffer, ref position),
+                        FileName = ReadString(buffer, ref position),
+                        Size = ReadInt(buffer, ref position),
+                        Md5 = ReadString(buffer, ref position),
+                        BundleHash = ReadString(buffer, ref position),
+                    };
+                    _fileInfoMap[fileInfo.Name] = fileInfo;
+                }
+            }
+            else
+            {
+                foreach (var fileInfo in _fileInfoList.List)
+                {
+                    _fileInfoMap[fileInfo.Name] = fileInfo;
+                }
             }
         }
 
