@@ -259,7 +259,7 @@ namespace PluginSet.Patch
                 return null;
 
 #if ENABLE_LOAD_ASSET_WITH_NAME
-            var asset = _source.LoadAsset(name, type);
+            var asset = _source.LoadAsset(Path.GetFileName(name), type);
 #else
             var path = FindAssetPath(name);
             if (string.IsNullOrEmpty(path))
