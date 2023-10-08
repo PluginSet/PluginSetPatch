@@ -251,7 +251,12 @@ namespace PluginSet.Patch
 
                             string fileName = null;
                             if (!string.IsNullOrEmpty(pathInfo.Path))
-                                fileName = FindMatchFileName(Path.Combine(pathInfo.Path, ".."), tempPath);
+                            {
+                                if (pathInfo.BuildType == PathBuildType.AllInBundle)
+                                    fileName = FindMatchFileName(Path.Combine(pathInfo.Path, ".."), tempPath);
+                                else
+                                    fileName = FindMatchFileName(pathInfo.Path, tempPath);
+                            }
 
                             if (fileName == null && pathInfo.FileList != null)
                             {
