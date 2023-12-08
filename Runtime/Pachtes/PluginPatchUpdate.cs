@@ -9,7 +9,7 @@ namespace PluginSet.Patch
     public class PluginPatchUpdate: PluginBase, IStartPlugin
     {
         public override string Name => "PatchUpdate";
-        public int StartOrder => PluginsStartOrder.Default - 1;
+        public int StartOrder => PluginsStartOrder.Default - 16;
         
         public bool IsRunning { get; private set; }
 
