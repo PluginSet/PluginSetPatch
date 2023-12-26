@@ -239,14 +239,9 @@ namespace PluginSet.Patch
             }
             
             var request = _contentRequest;
-            var file = Path.Combine(PatchResourcesManager.PatchesSavePath, _fileInfo.FileName);
-            if (File.Exists(file))
-            {
-                var content = File.ReadAllBytes(file);
-                content = AssetBundleEncryption.DecryptBytes(content, _fileInfo.BundleHash);
-                
+            var content = PatchResourcesManager.ReadFileContent(in _fileInfo);
+            if (content != null)
                 result = AssetBundle.LoadFromMemory(content);
-            }
             
             result = OnLoadedAssetBundle(result);
             request?.Abort();
@@ -362,16 +357,11 @@ namespace PluginSet.Patch
             _isLoading = true;
             
 #if UNITY_WEBGL
-            var file = Path.Combine(ResourcesManager.PatchesSavePath, _fileInfo.FileName);
-            byte[] content = null;
-            if (File.Exists(file))
-            {
-                content = File.ReadAllBytes(file);
-            }
-            else
+            var content = PatchResourcesManager.ReadFileContent(in _fileInfo);
+            if (content == null)
             {
                 if (!IsLoaded)
-                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName} md5:{_fileInfo.Md5}, error: file {file} not exist");
+                    Debug.LogWarning($"Cannot load bundle file :{_fileInfo.FileName} md5:{_fileInfo.Md5}, error: file {_fileInfo.Name} not exist");
                 OnLoadedAssetBundle(_source);
                 yield break;
             }
@@ -397,11 +387,11 @@ namespace PluginSet.Patch
 
             var content = contentRequest.downloadHandler.data;
             _contentRequest = null;
+            content = AssetBundleEncryption.DecryptBytes(content, _fileInfo.BundleHash);
 #endif
             if (IsLoaded || _isReleased)
                 yield break;
             
-            content = AssetBundleEncryption.DecryptBytes(content, _fileInfo.BundleHash);
             var createRequest = _createRequest = AssetBundle.LoadFromMemoryAsync(content);
             yield return createRequest;
             var result = createRequest.assetBundle;

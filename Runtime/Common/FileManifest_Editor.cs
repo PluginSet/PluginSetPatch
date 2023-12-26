@@ -14,7 +14,7 @@ namespace PluginSet.Patch
     {
         private const int MaxWriteLength = 4194304;
 
-        private const int CurrentVersion = 2;
+        private const int CurrentVersion = 3;
 
         private struct SaveJson
         {
@@ -77,7 +77,7 @@ namespace PluginSet.Patch
                 List = new List<FileInfo>()
             };
             var list = fileList.List;
-            var bundleFileList = manifest.GetAllAssetBundles();
+            var bundleFileList = manifest == null ? Array.Empty<string>() : manifest.GetAllAssetBundles();
             foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
             {
                 if (IgnoreFile(file))
@@ -171,14 +171,11 @@ namespace PluginSet.Patch
                 }
             }
             
-            WriteInt(writeBuffer, fileList.List.Count, ref position);
+            // remove by version 3
+            // WriteInt(writeBuffer, fileList.List.Count, ref position);
             foreach (var fileInfo in fileList.List)
             {
-                WriteString(writeBuffer, fileInfo.Name, ref position);
-                WriteString(writeBuffer, fileInfo.FileName, ref position);
-                WriteInt(writeBuffer, fileInfo.Size, ref position);
-                WriteString(writeBuffer, fileInfo.Md5, ref position);
-                WriteString(writeBuffer, fileInfo.BundleHash, ref position);
+                WriteFileInfo(writeBuffer, ref position, in fileInfo);
             }
 
             var buffer = new byte[position];
@@ -186,134 +183,66 @@ namespace PluginSet.Patch
             //写入StreamingAssets文件
             File.WriteAllBytes(targetFileName, buffer);
         }
-
-        /// <summary>
-        /// 生成StreamingAssets文件 在没有AssetBundleManifest时 就是在没有重新构建bundle时重新生成StreamingAssets,主要是为了更新版本号啥的
-        /// </summary>
-        /// <param name="path">资源路径</param>
-        /// <param name="targetName">生成的文件名 这里一般就是StreamingAssets</param>
-        /// <param name="version">版本号</param>
-        /// <param name="fileMap">用来记录文件组</param>
-        /// <param name="subPatches"></param>
-        public static void AppendFileInfo(string path, string targetName, string version, ref Dictionary<string, FileInfo> fileMap, string[] subPatches = null)
+        
+        private static void WriteFileInfo(byte[] buffer, ref int position, in FileInfo fileInfo)
         {
-            var targetFileName = Path.Combine(path, targetName);
-            byte[] targetContent = null;
-            if (File.Exists(targetFileName))
-            {
-                targetContent = File.ReadAllBytes(targetFileName);
-                //如果存在的StreamingAssets是unity生成的,那就有问题.
-                if (IsUnityManifest(targetContent))
-                    return;
-            }
-            else
-            {
-                targetContent = new byte[0];
-            }
-
-            var fileList = new FileInfoList
-            {
-                List = new List<FileInfo>()
-            };
-            var list = fileList.List;
-            FileManifest writeFileManifest = LoadFileManifest(string.Empty, targetFileName);
-            foreach (var fileInfo in writeFileManifest.AllFileInfo)
-            {
-                string file = Path.Combine(path, fileInfo.FileName);
-                if (IgnoreFile(file))
-                    continue;
-
-                var fileKey = Path.GetFileName(file);
-                if (!string.IsNullOrEmpty(fileKey) && fileMap.TryGetValue(fileKey, out var info))
-                {
-                    list.Add(info);
-                    continue;
-                }
-
-                var fileName = Path.GetFileNameWithoutExtension(file);
-                if (fileName == null)
-                    fileName = string.Empty;
-
-                if (targetName.ToLower().Equals(fileName.ToLower()))
-                    continue;
-
-                //部分文件需要重新计算大小和md5
-                if (IsResetFile(fileInfo.FileName))
-                {
-                    var content = File.ReadAllBytes(file);
-                    var md5 = PluginUtil.GetMd5(content);
-                    info = new FileInfo
-                    {
-                        Name = fileInfo.Name,
-                        FileName = fileInfo.FileName,
-                        Size = content.Length,
-                        Md5 = md5,
-                        BundleHash = fileInfo.BundleHash
-                    };
-                    list.Add(info);
-                }
-                else
-                {
-                    info = new FileInfo
-                    {
-                        Name = fileInfo.Name,
-                        FileName = fileInfo.FileName,
-                        Size = fileInfo.Size,
-                        Md5 = fileInfo.Md5,
-                        BundleHash = fileInfo.BundleHash
-                    };
-                    list.Add(info);
-                }
-                fileMap.Add(fileInfo.FileName, info);
-            }
-
-            var saveJson = new SaveJson
-            {
-                Files = fileMap.Values.ToArray()
-            };
-
-            File.WriteAllText(Path.Combine(path, $"{targetName}_files.manifest"), JsonUtility.ToJson(saveJson, true));
-
-            MemoryStream stream = new MemoryStream();
-            BinaryFormatter bf = new BinaryFormatter();
-            bf.Serialize(stream, fileList);
-
-            var position = 0;
-            var _fileVersion = ReadInt(targetContent, ref position);
-            var _manifestBuffer = ReadBytes(targetContent, ref position);
-            position = 0;
-
-            //todo main he file 的md5还有问题 需要刷新
-
-            var writeBuffer = new byte[MaxWriteLength];
-            WriteInt(writeBuffer, _fileVersion, ref position);
-            WriteBytes(writeBuffer, _manifestBuffer, ref position);
-            WriteBytes(writeBuffer, stream.ToArray(), ref position);
-            WriteString(writeBuffer, version, ref position);
-            WriteString(writeBuffer, PluginUtil.GetMd5(writeBuffer, 0, position), ref position);
-            if (subPatches == null)
-            {
-                WriteInt(writeBuffer, 0, ref position);
-            }
-            else
-            {
-                var count = subPatches.Length;
-                WriteInt(writeBuffer, count, ref position);
-                foreach (var sub in subPatches)
-                {
-                    WriteString(writeBuffer, sub, ref position);
-                }
-            }
-
-            var buffer = new byte[position];
-            Array.Copy(writeBuffer, buffer, position);
-
-            if (File.Exists(targetFileName))
-                File.Delete(targetFileName);
-            //写入StreamingAssets文件
-            File.WriteAllBytes(targetFileName, buffer);
+            WriteString(buffer, fileInfo.Name, ref position);
+            WriteString(buffer, fileInfo.FileName, ref position);
+            WriteInt(buffer, fileInfo.Size, ref position);
+            WriteString(buffer, fileInfo.Md5, ref position);
+            WriteString(buffer, fileInfo.BundleHash, ref position);
         }
 
+        public static void AppendFileInfo(string filePath, params FileInfo[] fileInfos)
+        {
+            if (!File.Exists(filePath))
+                throw new Exception($"file not exists {filePath}");
+                
+            var oldBuffer = File.ReadAllBytes(filePath);
+            var position = oldBuffer.Length;
+            var writeBuffer = new byte[MaxWriteLength];
+            Array.Copy(oldBuffer, writeBuffer, position);
+            foreach (var fileInfo in fileInfos)
+            {
+                WriteFileInfo(writeBuffer, ref position, in fileInfo);
+            }
+            
+            var buffer = new byte[position];
+            Array.Copy(writeBuffer, buffer, position);
+            //写入StreamingAssets文件
+            File.WriteAllBytes(filePath, buffer);
+        }
+
+        public static void AppendFiles(string path, string streamFileName, params string[] files)
+        {
+            var streamFilePath = Path.Combine(path, streamFileName);
+            if (!File.Exists(streamFilePath))
+                return;
+
+            var list = new List<FileInfo>();
+            foreach (var file in files)
+            {
+                var filePath = Path.Combine(path, file);
+                var extension = Path.GetExtension(file);
+                var content = File.ReadAllBytes(filePath);
+                var md5 = PluginUtil.GetMd5(content);
+                
+                string dstFileName = $"{file}_{md5}{extension}";
+                File.Move(filePath, Path.Combine(path, dstFileName));
+
+                var info = new FileInfo
+                {
+                    Name = file,
+                    FileName = dstFileName,
+                    Size = content.Length,
+                    Md5 = md5,
+                    BundleHash = string.Empty
+                };
+                list.Add(info);
+            }
+            
+            AppendFileInfo(streamFilePath, list.ToArray());
+        }
 
         /// <summary>
         /// 忽略的文件

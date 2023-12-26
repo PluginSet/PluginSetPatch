@@ -247,7 +247,7 @@ namespace PluginSet.Patch.Editor
             AssetDatabase.Refresh();
         }
         
-        [OnBuildBundlesCompleted]
+        [OnBuildBundlesCompleted(int.MaxValue)]
         public static void OnBuildBundlesCompleted(BuildProcessorContext context, string streamingPath,
             string streamingName, AssetBundleManifest manifest, bool patchBundle = false)
         {
@@ -260,24 +260,42 @@ namespace PluginSet.Patch.Editor
                     Global.RevertFileBundleInfo(info);
                 }
             }
+            
+            PackBundlesFileInfo(context, manifest, streamingPath, streamingName);
 
+            if (context.IsBuildingPatches())
+                return;
+
+            var list = context.GetStreamingExtendFiles();
+            if (list == null)
+                return;
+
+            // FileManifest.AppendFiles(streamingPath, streamingName, list.ToArray());
+            list.Clear();
+        }
+        
+        [BuildProjectCompleted(int.MaxValue)]
+        public static void OnProjectBuildCompleted(BuildProcessorContext context, string exportPath)
+        {
+            var list = context.GetStreamingExtendFiles();
+            if (list == null)
+                return;
+
+            var assetsPath = Global.GetProjectAssetsPath(context.BuildTarget, exportPath);
+            if (string.IsNullOrEmpty(assetsPath))
+                return;
+            
+            var streamingName = context.StreamingAssetsName;
+            FileManifest.AppendFiles(assetsPath, streamingName, list.ToArray());
+            list.Clear();
+        }
+        
+        private static void PackBundlesFileInfo(BuildProcessorContext context, AssetBundleManifest manifest, string streamingPath, string streamingName)
+        {
             var version = PluginUtil.GetVersionString(context.VersionName, int.Parse(context.Build));
             var subPatches = context.TryGet<string[]>("internalSubPatches", null);
             var map = context.TryGet("buildFileInfoMap",new Dictionary<string, FileManifest.FileInfo>());
-
-            if (manifest == null)
-            {
-                //如果没有重新构建bundle,但是也需要刷新StreamingAssets文件
-                bool isBuild = context.TryGet("IsBuild",true);
-                if (!isBuild)
-                {
-                    FileManifest.AppendFileInfo(streamingPath, streamingName, version, ref map, subPatches);
-                }
-            }
-            else
-            {
-                FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version , ref map, subPatches, context.ResourceVersion);
-            }
+            FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version , ref map, subPatches, context.ResourceVersion);
         }
 
         private static void CollectFileMap(in PathInfo[] paths,

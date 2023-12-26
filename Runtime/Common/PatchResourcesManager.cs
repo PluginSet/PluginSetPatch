@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using PluginSet.Core;
 using UnityEngine;
+using UnityEngine.Networking;
 using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 using UnityEditor;
@@ -15,6 +16,18 @@ namespace PluginSet.Patch
 {
     public class PatchResourcesManager : ResourcesManager
     {
+        internal static byte[] ReadFileContent(in FileManifest.FileInfo info)
+        {
+            var path = Path.Combine(PatchesSavePath, info.FileName);
+            if (!File.Exists(path))
+                return null;
+            
+            var content = File.ReadAllBytes(path);
+            if (!string.IsNullOrEmpty(info.BundleHash))
+                content = AssetBundleEncryption.DecryptBytes(content, info.BundleHash);
+            return content;
+        }
+        
         private const int OnceMaxLoadAssetBundleCount = 5;
 
         public override string RunningVersion
@@ -36,8 +49,9 @@ namespace PluginSet.Patch
         private List<FileManifest> _searchManifest = new List<FileManifest>();
         private TaskLimiter _tasks = new TaskLimiter(OnceMaxLoadAssetBundleCount);
 
-        private Dictionary<string, FileManifest> _bunleManifests = new Dictionary<string, FileManifest>();
-        private Dictionary<string, FileManifest> _assetManifests = new Dictionary<string, FileManifest>();
+        private readonly Dictionary<string, FileManifest.FileInfo> _fileInfos = new Dictionary<string, FileManifest.FileInfo>();
+        private readonly Dictionary<string, FileManifest> _bundleManifests = new Dictionary<string, FileManifest>();
+        private readonly Dictionary<string, FileManifest> _assetManifests = new Dictionary<string, FileManifest>();
 
 #if UNITY_EDITOR
         public static readonly Dictionary<string, PathInfo[]> PathInfoses = new Dictionary<string, PathInfo[]>();
@@ -53,8 +67,9 @@ namespace PluginSet.Patch
         {
             ResourceVersion = PluginUtil.AppVersion;
             _searchManifest.Clear();
-            _bunleManifests.Clear();
+            _bundleManifests.Clear();
             _assetManifests.Clear();
+            _fileInfos.Clear();
         }
 
         public override void AddSearchPath(string searchPath, bool front = false)
@@ -78,8 +93,9 @@ namespace PluginSet.Patch
             else
                 _searchManifest.Add(fileManifest);
 
-            _bunleManifests.Clear();
+            _bundleManifests.Clear();
             _assetManifests.Clear();
+            _fileInfos.Clear();
         }
 
         private IEnumerator AddSearchManifestAsync(FileManifest fileManifest, bool front)
@@ -91,8 +107,9 @@ namespace PluginSet.Patch
             else
                 _searchManifest.Add(fileManifest);
 
-            _bunleManifests.Clear();
+            _bundleManifests.Clear();
             _assetManifests.Clear();
+            _fileInfos.Clear();
         }
 
         private void RemoveSearchManifest(string name)
@@ -117,8 +134,9 @@ namespace PluginSet.Patch
             if (index >= 0)
                 _searchManifest.RemoveAt(index);
 
-            _bunleManifests.Clear();
+            _bundleManifests.Clear();
             _assetManifests.Clear();
+            _fileInfos.Clear();
         }
 
 #if UNITY_EDITOR
@@ -360,6 +378,15 @@ namespace PluginSet.Patch
                 action => LoadBundleRefAllAssetAsync(manifest, bundleName, type, action));
         }
 
+        public override byte[] ReadFile(string fileName)
+        {
+            var fileInfo = FindFileInfo(fileName);
+            if (!fileInfo.HasValue)
+                return null;
+
+            return ReadFileContent(fileInfo.Value);
+        }
+
 #if UNITY_EDITOR
         public override bool IsValidAssetFile(string file)
         {
@@ -401,15 +428,32 @@ namespace PluginSet.Patch
 
         private FileManifest FindBundlePatch(string name)
         {
-            if (_bunleManifests.TryGetValue(name, out var result))
+            if (_bundleManifests.TryGetValue(name, out var result))
                 return result;
 
             foreach (var manifest in _searchManifest)
             {
                 if (manifest.ExistBundle(name))
                 {
-                    _bunleManifests.Add(name, manifest);
+                    _bundleManifests.Add(name, manifest);
                     return manifest;
+                }
+            }
+
+            return null;
+        }
+        
+        private FileManifest.FileInfo? FindFileInfo(string name)
+        {
+            if (_fileInfos.TryGetValue(name, out var result))
+                return result;
+
+            foreach (var manifest in _searchManifest)
+            {
+                if (manifest.GetFileInfo(name, out var info))
+                {
+                    _fileInfos.Add(name, info);
+                    return info;
                 }
             }
 

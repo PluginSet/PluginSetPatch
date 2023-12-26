@@ -58,6 +58,11 @@ namespace PluginSet.Patch
             var title = Encoding.UTF8.GetString(buffer, 0, 5);
             return title.ToLower().Equals("unity");
         }
+        
+        private static bool IsEnd(byte[] buffer, in int position)
+        {
+            return position >= buffer.Length;
+        }
 
         private static int ReadInt(byte[] buffer, ref int position)
         {
@@ -126,11 +131,10 @@ namespace PluginSet.Patch
                 if (_fileInfoMap == null)
                     LoadManifest();
 
-                return _fileInfoList.List;
+                return _fileInfoMap.Values;
             }
         }
 
-        private FileInfoList _fileInfoList;
         private Dictionary<string, FileInfo> _fileInfoMap;
         
         private byte[] _manifestBuffer;
@@ -164,7 +168,7 @@ namespace PluginSet.Patch
             _fileVersion = ReadInt(buffer, ref position);
             _manifestBuffer = ReadBytes(buffer, ref position);
             var fileData = ReadBytes(buffer, ref position);
-            _fileInfoList = ParseFileInfoList(fileData);
+            var fileInfoList = ParseFileInfoList(fileData);
             Version = ReadString(buffer, ref position);
             var calMd5 = PluginUtil.GetMd5(buffer, 0, position);
             var md5 = ReadString(buffer, ref position);
@@ -181,7 +185,7 @@ namespace PluginSet.Patch
             }
 
             _fileInfoMap = new Dictionary<string, FileInfo>();
-            if (_fileVersion > 1)
+            if (_fileVersion == 2)
             {
                 var fileCount = ReadInt(buffer, ref position);
                 for (int i = 0; i < fileCount; i++)
@@ -197,10 +201,25 @@ namespace PluginSet.Patch
                     _fileInfoMap[fileInfo.Name] = fileInfo;
                 }
             }
+            else if (_fileVersion < 2)
+            {
+                foreach (var fileInfo in fileInfoList.List)
+                {
+                    _fileInfoMap[fileInfo.Name] = fileInfo;
+                }
+            }
             else
             {
-                foreach (var fileInfo in _fileInfoList.List)
+                while (!IsEnd(buffer, position))
                 {
+                    var fileInfo = new FileInfo
+                    {
+                        Name = ReadString(buffer, ref position),
+                        FileName = ReadString(buffer, ref position),
+                        Size = ReadInt(buffer, ref position),
+                        Md5 = ReadString(buffer, ref position),
+                        BundleHash = ReadString(buffer, ref position),
+                    };
                     _fileInfoMap[fileInfo.Name] = fileInfo;
                 }
             }
@@ -212,12 +231,12 @@ namespace PluginSet.Patch
                 return;
             
             _fileInfoMap = new Dictionary<string, FileInfo>();
-            _fileInfoList = new FileInfoList
+            var fileInfoList = new FileInfoList
             {
                 List = new List<FileInfo>()
             };
 
-            var list = _fileInfoList.List;
+            var list = fileInfoList.List;
             foreach (var name in _manifest.GetAllAssetBundles())
             {
                 list.Add(new FileInfo
