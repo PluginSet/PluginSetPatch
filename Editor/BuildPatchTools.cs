@@ -518,8 +518,8 @@ namespace PluginSet.Patch.Editor
             var doc = projectManager.LibraryManifest;
             doc.AddUsePermission("android.permission.WRITE_EXTERNAL_STORAGE", "SDCard写入数据");
             doc.AddUsePermission("android.permission.READ_EXTERNAL_STORAGE", "SDCard读取数据");
-            var node = doc.AddUsePermission("android.permission.MOUNT_UNMOUNT_FILESYSTEMS", "SDCard中创建与删除文件权限");
-            node.SetAttribute("ignore", AndroidConst.NS_TOOLS, "ProtectedPermissions");
+            // var node = doc.AddUsePermission("android.permission.MOUNT_UNMOUNT_FILESYSTEMS", "SDCard中创建与删除文件权限");
+            // node.SetAttribute("ignore", AndroidConst.NS_TOOLS, "ProtectedPermissions");
             
             var buildParams = context.BuildChannels.Get<BuildPatchParams>();
             if (!buildParams.DisablePatchUpdate)
