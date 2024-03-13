@@ -78,6 +78,9 @@ namespace PluginSet.Patch
             };
             var list = fileList.List;
             var bundleFileList = manifest == null ? Array.Empty<string>() : manifest.GetAllAssetBundles();
+            if (Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            
             foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
             {
                 if (IgnoreFile(file))

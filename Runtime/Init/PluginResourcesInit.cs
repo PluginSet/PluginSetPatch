@@ -25,6 +25,7 @@ namespace PluginSet.Patch
 #if UNITY_EDITOR
         private PatchInfo[] _patchInfos;
         private PathInfo[] _streamPaths;
+        private string[] _streamExtendPaths;
 #endif
 
         protected override void Init(PluginSetConfig config)
@@ -34,6 +35,7 @@ namespace PluginSet.Patch
             var cfg = config.Get<PluginPatchConfig>();
             _patchInfos = cfg.Patches;
             _streamPaths = cfg.StreamPaths;
+            _streamExtendPaths = cfg.StreamingExtendPaths;
 #endif
         }
 
@@ -94,7 +96,7 @@ namespace PluginSet.Patch
 
             // 初始化资源管理器
 #if UNITY_EDITOR
-            yield return manager.Init(fileManifest, _patchInfos, _streamPaths);
+            yield return manager.Init(fileManifest, _patchInfos, _streamPaths, _streamExtendPaths);
 #else
             yield return manager.Init(fileManifest);
 #endif

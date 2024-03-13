@@ -8,6 +8,7 @@ namespace PluginSet.Patch
         
 #if UNITY_EDITOR
         public PathInfo[] StreamPaths;
+        public string[] StreamingExtendPaths;
         public PatchInfo[] Patches;
 #endif
     }

@@ -187,10 +187,11 @@ namespace PluginSet.Patch.Editor
                     var copyToStream = info.CopyToStream &&
                                        (!isBuildUpdatePatch || buildParams.EnableCopyToStreamWhenBuildUpdatePatches);
                     
+                    CopyExtendFiles(exportPath, info.extendFiles);
                     Global.CallCustomOrderMethods<OnBuildBundlesCompletedAttribute, BuildToolsAttribute>(context, exportPath, info.Name, manifest, !copyToStream);
                     
-                    if (manifest == null)
-                        continue;
+                    // if (manifest == null)
+                    //     continue;
 
                     if (copyToStream)
                     {
@@ -259,6 +260,12 @@ namespace PluginSet.Patch.Editor
                 {
                     Global.RevertFileBundleInfo(info);
                 }
+            }
+
+            if (!context.IsBuildingPatches())
+            {
+                var buildParams = context.BuildChannels.Get<BuildPatchParams>();
+                CopyExtendFiles(context.StreamingAssetsPath, buildParams.StreamingExtendFiles);
             }
             
             PackBundlesFileInfo(context, manifest, streamingPath, streamingName);
@@ -509,6 +516,25 @@ namespace PluginSet.Patch.Editor
             {
                 Debug.LogWarning("CollectFileCurrentBundleInfo:: " + e);
                 return string.Empty;
+            }
+        }
+
+        private static void CopyExtendFiles(string exportPath, string[] files)
+        {
+            if (files == null)
+                return;
+
+            if (!Directory.Exists(exportPath))
+                Directory.CreateDirectory(exportPath);
+            
+            foreach (var file in files)
+            {
+                if (File.Exists(file))
+                    Global.CopyFileTo(file, exportPath);
+                else if (Directory.Exists(file))
+                    Global.CopyFilesTo( exportPath, file, "*.*");
+                else
+                    Debug.LogError($"Cannot find file or directory {file}");
             }
         }
 

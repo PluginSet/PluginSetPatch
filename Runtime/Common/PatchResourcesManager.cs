@@ -49,12 +49,13 @@ namespace PluginSet.Patch
         private List<FileManifest> _searchManifest = new List<FileManifest>();
         private TaskLimiter _tasks = new TaskLimiter(OnceMaxLoadAssetBundleCount);
 
+        private readonly object _fileInfoLock = new object();
         private readonly Dictionary<string, FileManifest.FileInfo> _fileInfos = new Dictionary<string, FileManifest.FileInfo>();
         private readonly Dictionary<string, FileManifest> _bundleManifests = new Dictionary<string, FileManifest>();
         private readonly Dictionary<string, FileManifest> _assetManifests = new Dictionary<string, FileManifest>();
 
 #if UNITY_EDITOR
-        public static readonly Dictionary<string, PathInfo[]> PathInfoses = new Dictionary<string, PathInfo[]>();
+        public static readonly Dictionary<string, PatchInfo> PatchInfos = new Dictionary<string, PatchInfo>();
 #endif
 
         public override string StreamingAssetsName => "StreamingAssets";
@@ -69,7 +70,8 @@ namespace PluginSet.Patch
             _searchManifest.Clear();
             _bundleManifests.Clear();
             _assetManifests.Clear();
-            _fileInfos.Clear();
+            lock (_fileInfoLock)
+                _fileInfos.Clear();
         }
 
         public override void AddSearchPath(string searchPath, bool front = false)
@@ -95,7 +97,8 @@ namespace PluginSet.Patch
 
             _bundleManifests.Clear();
             _assetManifests.Clear();
-            _fileInfos.Clear();
+            lock (_fileInfoLock)
+                _fileInfos.Clear();
         }
 
         private IEnumerator AddSearchManifestAsync(FileManifest fileManifest, bool front)
@@ -109,7 +112,8 @@ namespace PluginSet.Patch
 
             _bundleManifests.Clear();
             _assetManifests.Clear();
-            _fileInfos.Clear();
+            lock (_fileInfoLock)
+                _fileInfos.Clear();
         }
 
         private void RemoveSearchManifest(string name)
@@ -136,20 +140,25 @@ namespace PluginSet.Patch
 
             _bundleManifests.Clear();
             _assetManifests.Clear();
-            _fileInfos.Clear();
+            lock (_fileInfoLock)
+                _fileInfos.Clear();
         }
 
 #if UNITY_EDITOR
-        public IEnumerator Init(FileManifest fileManifest, PatchInfo[] patchInfos, PathInfo[] streamPaths)
+        public IEnumerator Init(FileManifest fileManifest, PatchInfo[] patchInfos, PathInfo[] streamPaths, string[] streamingExtendPaths)
         {
-            PathInfoses.Clear();
+            PatchInfos.Clear();
             base.AddSearchPath(StreamingAssetsName);
-            PathInfoses.Add(StreamingAssetsName, streamPaths);
+            PatchInfos.Add(StreamingAssetsName, new PatchInfo()
+            {
+                Paths =  streamPaths,
+                extendFiles = streamingExtendPaths
+            });
             if (patchInfos != null)
             {
                 foreach (var info in patchInfos)
                 {
-                    PathInfoses.Add(info.Name.ToLower(), info.Paths);
+                    PatchInfos.Add(info.Name.ToLower(), info);
                 }
             }
 
@@ -186,7 +195,7 @@ namespace PluginSet.Patch
             }
 
 #if UNITY_EDITOR
-            var asset = PatchUtil.LoadEditorAsset(path, PathInfoses, type);
+            var asset = PatchUtil.LoadEditorAsset(path, PatchInfos, type);
             if (asset != null)
                 return asset;
 #endif
@@ -200,7 +209,7 @@ namespace PluginSet.Patch
             return LoadAssetAsync(bundleName, assetName, type, delegate(Action<Object> completed)
             {
 #if UNITY_EDITOR
-                var asset = PatchUtil.LoadEditorAsset(path, PathInfoses, type);
+                var asset = PatchUtil.LoadEditorAsset(path, PatchInfos, type);
                 if (asset != null)
                 {
                     completed?.Invoke(asset);
@@ -221,7 +230,7 @@ namespace PluginSet.Patch
             return LoadAssetAsync<T>(bundleName, assetName, delegate(Action<T> completed)
             {
 #if UNITY_EDITOR
-                var asset = PatchUtil.LoadEditorAsset<T>(path, PathInfoses);
+                var asset = PatchUtil.LoadEditorAsset<T>(path, PatchInfos);
                 if (asset != null)
                 {
                     completed?.Invoke(asset);
@@ -298,7 +307,7 @@ namespace PluginSet.Patch
         {
 #if UNITY_EDITOR
             if (_searchManifest.All(mani => mani.IsEmpty))
-                return PatchUtil.LoadEditorBundleAsset(bundleName, assetName, PathInfoses, type);
+                return PatchUtil.LoadEditorBundleAsset(bundleName, assetName, PatchInfos, type);
 #endif
             var manifest = FindBundlePatchWithAsset(bundleName, assetName);
             if (manifest == null)
@@ -382,7 +391,13 @@ namespace PluginSet.Patch
         {
             var fileInfo = FindFileInfo(fileName);
             if (!fileInfo.HasValue)
+            {
+#if UNITY_EDITOR
+                if (PatchUtil.FindFileInPaths(fileName, out var path, SearchPaths, PatchInfos))
+                    return File.ReadAllBytes(path);
+#endif
                 return null;
+            }
 
             return ReadFileContent(fileInfo.Value);
         }
@@ -394,9 +409,9 @@ namespace PluginSet.Patch
                 return false;
 
             var path = Global.GetSubPath(".", file);
-            foreach (var kv in PathInfoses)
+            foreach (var kv in PatchInfos)
             {
-                foreach (var pathInfo in kv.Value)
+                foreach (var pathInfo in kv.Value.Paths)
                 {
                     if (path.StartsWith(pathInfo.Path))
                     {
@@ -412,7 +427,7 @@ namespace PluginSet.Patch
         {
 #if UNITY_EDITOR
             if (_searchManifest.All(manifest => manifest.IsEmpty))
-                return PatchUtil.ExistsBundle(name, PathInfoses);
+                return PatchUtil.ExistsBundle(name, PatchInfos);
 #endif
             return FindBundlePatch(name) != null;
         }
@@ -421,7 +436,7 @@ namespace PluginSet.Patch
         {
 #if UNITY_EDITOR
             if (_searchManifest.All(manifest => manifest.IsEmpty))
-                return !string.IsNullOrEmpty(PatchUtil.FindEditorBundleAsset(bundleName, assetName, PathInfoses));
+                return !string.IsNullOrEmpty(PatchUtil.FindEditorBundleAsset(bundleName, assetName, PatchInfos));
 #endif
             return FindBundlePatchWithAsset(bundleName, assetName) != null;
         }
@@ -445,14 +460,18 @@ namespace PluginSet.Patch
         
         private FileManifest.FileInfo? FindFileInfo(string name)
         {
-            if (_fileInfos.TryGetValue(name, out var result))
-                return result;
+            lock (_fileInfoLock)
+            {
+                if (_fileInfos.TryGetValue(name, out var result))
+                    return result;
+            }
 
             foreach (var manifest in _searchManifest)
             {
                 if (manifest.GetFileInfo(name, out var info))
                 {
-                    _fileInfos.Add(name, info);
+                    lock (_fileInfoLock)
+                        _fileInfos.Add(name, info);
                     return info;
                 }
             }
@@ -599,7 +618,7 @@ namespace PluginSet.Patch
 #if UNITY_EDITOR
             if (_searchManifest.All(mani => mani.IsEmpty))
             {
-                var asset = PatchUtil.LoadEditorBundleAsset(name, assetName, PathInfoses, type);
+                var asset = PatchUtil.LoadEditorBundleAsset(name, assetName, PatchInfos, type);
                 yield return null;
                 if (asset == null)
                 {

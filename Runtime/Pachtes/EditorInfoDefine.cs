@@ -67,6 +67,13 @@ namespace PluginSet.Patch
         [NonReorderable]
 #endif
         public PathInfo[] Paths;
+        
+        [SerializeField]
+#if UNITY_2020_2_OR_NEWER
+        [NonReorderable]
+#endif
+        [FolderDrag]
+        public string[] extendFiles;
     }
 }
 #endif

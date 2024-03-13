@@ -229,7 +229,7 @@ namespace PluginSet.Patch
             return null;
         }
 
-        public static UnityEngine.Object LoadEditorAsset(string path, Dictionary<string, PathInfo[]> pathInfos, Type type)
+        public static UnityEngine.Object LoadEditorAsset(string path, Dictionary<string, PatchInfo> patchInfos, Type type)
         {
             var extensions = FindTypeFileExtensions(type);
             if (extensions == null)
@@ -242,9 +242,9 @@ namespace PluginSet.Patch
                 
                 foreach (var searchPath in manager.SearchPaths)
                 {
-                    if (pathInfos.TryGetValue(searchPath, out var paths))
+                    if (patchInfos.TryGetValue(searchPath, out var patch))
                     {
-                        foreach (var pathInfo in paths)
+                        foreach (var pathInfo in patch.Paths)
                         {
                             if (!pathInfo.UseResourceLoad)
                                 continue;
@@ -283,24 +283,24 @@ namespace PluginSet.Patch
             return null;
         }
 
-        public static T LoadEditorAsset<T>(string path, Dictionary<string, PathInfo[]> pathInfos) where T: UnityEngine.Object
+        public static T LoadEditorAsset<T>(string path, Dictionary<string, PatchInfo> patchInfos) where T: UnityEngine.Object
         {
-            var result = LoadEditorAsset(path, pathInfos, typeof(T));
+            var result = LoadEditorAsset(path, patchInfos, typeof(T));
             if (result == null)
                 return null;
 
             return result as T;
         }
 
-        public static bool ExistsBundle(string bundleName, Dictionary<string, PathInfo[]> pathInfoses)
+        public static bool ExistsBundle(string bundleName, Dictionary<string, PatchInfo> patchInfos)
         {
             var manager = ResourcesManager.Instance;
             foreach (var searchPath in manager.SearchPaths)
             {
-                if (!pathInfoses.TryGetValue(searchPath, out var pathInfos))
+                if (!patchInfos.TryGetValue(searchPath, out var patch))
                     continue;
 
-                foreach (var pathInfo in pathInfos)
+                foreach (var pathInfo in patch.Paths)
                 {
                     if (pathInfo.UseResourceLoad)
                         continue;
@@ -391,17 +391,17 @@ namespace PluginSet.Patch
         }
 
         public static string FindEditorBundleAsset(string bundleName, string assetName,
-            Dictionary<string, PathInfo[]> pathInfoses, string ext = "*")
+            Dictionary<string, PatchInfo> patchInfos, string ext = "*")
         {
             var manager = ResourcesManager.Instance;
             var tempPath = $"{assetName}.{ext}";
             
             foreach (var searchPath in manager.SearchPaths)
             {
-                if (!pathInfoses.TryGetValue(searchPath, out var pathInfos))
+                if (!patchInfos.TryGetValue(searchPath, out var patch))
                     continue;
 
-                foreach (var pathInfo in pathInfos)
+                foreach (var pathInfo in patch.Paths)
                 {
                     if (pathInfo.UseResourceLoad)
                         continue;
@@ -494,7 +494,7 @@ namespace PluginSet.Patch
             return null;
         }
         
-        public static UnityEngine.Object LoadEditorBundleAsset(string bundleName, string assetName, Dictionary<string, PathInfo[]> pathInfoses, Type type)
+        public static UnityEngine.Object LoadEditorBundleAsset(string bundleName, string assetName, Dictionary<string, PatchInfo> patchInfos, Type type)
         {
             var extensionTypes = FindTypeFileExtensions(type);
             if (extensionTypes == null)
@@ -503,7 +503,7 @@ namespace PluginSet.Patch
             
             foreach (var ext in extensionTypes)
             {
-                var fileName = FindEditorBundleAsset(bundleName, assetName, pathInfoses, ext);
+                var fileName = FindEditorBundleAsset(bundleName, assetName, patchInfos, ext);
                 if (!string.IsNullOrEmpty(fileName))
                     return UnityEditor.AssetDatabase.LoadAssetAtPath(fileName, type);
             }
@@ -511,11 +511,32 @@ namespace PluginSet.Patch
             return null;
         }
 
-        public static T LoadEditorBundleAsset<T>(string bundleName, string assetName, Dictionary<string, PathInfo[]> pathInfoses) where T: UnityEngine.Object
+        public static T LoadEditorBundleAsset<T>(string bundleName, string assetName, Dictionary<string, PatchInfo> patchInfos) where T: UnityEngine.Object
         {
-            return LoadEditorBundleAsset(bundleName, assetName, pathInfoses, typeof(T)) as T;
+            return LoadEditorBundleAsset(bundleName, assetName, patchInfos, typeof(T)) as T;
+        }
+
+        public static bool FindFileInPaths(string name, out string path, IEnumerable<string> searchPaths, Dictionary<string, PatchInfo> patchInfos)
+        {
+            path = null;
+            foreach (var searchPath in searchPaths)
+            {
+                if (!patchInfos.TryGetValue(searchPath, out var patch))
+                    continue;
+                
+                foreach (var p in patch.extendFiles)
+                {
+                    var file = Path.Combine(p, name);
+                    if (File.Exists(file))
+                    {
+                        path = file;
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 #endif
-        
     }
 }

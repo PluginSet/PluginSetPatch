@@ -250,7 +250,7 @@ namespace PluginSet.Patch
 
         public IEnumerator LoadManifestAsync()
         {
-            if (_manifestBuffer == null)
+            if (_manifestBuffer == null || _manifestBuffer.Length == 0)
                 yield break;
             
             if (_manifest != null)

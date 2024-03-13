@@ -1,5 +1,6 @@
 {
     "name": "PluginSet.Patch",
+    "rootNamespace": "",
     "references": [
         "PluginSet.Core"
     ],
@@ -10,5 +11,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": []
+    "versionDefines": [
+        {
+            "name": "com.unity.modules.assetbundle",
+            "expression": "5",
+            "define": "ALLWAYS_DETERMINISTIC"
+        }
+    ],
+    "noEngineReferences": false
 }

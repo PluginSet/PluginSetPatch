@@ -41,6 +41,12 @@ namespace PluginSet.Patch.Editor
         [NonReorderable]
 #endif
         public PathInfo[] StreamingPaths;
+        
+#if UNITY_2020_2_OR_NEWER
+        [NonReorderable]
+#endif
+        [FolderDrag]
+        public string[] StreamingExtendFiles;
 
         [Tooltip("子包资源数据")]
 #if UNITY_2020_2_OR_NEWER
@@ -68,6 +74,7 @@ namespace PluginSet.Patch.Editor
             var config = pluginConfig.AddConfig<PluginPatchConfig>("Patch");
             config.ContinueIfUpdateFail = buildParams.ContinueIfUpdateFail;
             config.StreamPaths = buildParams.StreamingPaths;
+            config.StreamingExtendPaths = buildParams.StreamingExtendFiles;
             config.Patches = buildParams.Patches;
         }
 
