@@ -247,7 +247,7 @@ namespace PluginSet.Patch.Editor
             AssetDatabase.Refresh();
         }
         
-        [OnBuildBundlesCompleted(int.MaxValue)]
+        [OnBuildBundlesCompleted(9999999)]
         public static void OnBuildBundlesCompleted(BuildProcessorContext context, string streamingPath,
             string streamingName, AssetBundleManifest manifest, bool patchBundle = false)
         {
