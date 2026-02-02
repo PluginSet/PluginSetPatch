@@ -270,6 +270,7 @@ namespace PluginSet.Patch.Editor
             if (list == null)
                 return;
 
+            // 在PackBundlesFileInfo中已经处理了所有文件
             // FileManifest.AppendFiles(streamingPath, streamingName, list.ToArray());
             list.Clear();
         }

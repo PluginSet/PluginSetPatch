@@ -378,6 +378,15 @@ namespace PluginSet.Patch
                 action => LoadBundleRefAllAssetAsync(manifest, bundleName, type, action));
         }
 
+        public override string GetRealFilePath(string fileName)
+        {
+            var fileInfo = FindFileInfo(fileName);
+            if (!fileInfo.HasValue)
+                return null;
+            
+            return fileInfo.Value.FileName;
+        }
+
         public override byte[] ReadFile(string fileName)
         {
             var fileInfo = FindFileInfo(fileName);

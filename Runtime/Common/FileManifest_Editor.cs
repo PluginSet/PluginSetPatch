@@ -223,6 +223,9 @@ namespace PluginSet.Patch
             foreach (var file in files)
             {
                 var filePath = Path.Combine(path, file);
+                if (!File.Exists(filePath))
+                    continue;
+                
                 var extension = Path.GetExtension(file);
                 var content = File.ReadAllBytes(filePath);
                 var md5 = PluginUtil.GetMd5(content);
