@@ -360,7 +360,7 @@ namespace PluginSet.Patch.Editor
                             if (!Global.IsAsset(file))
                                 continue;
 
-                            var bundleName = Path.GetFileNameWithoutExtension(file)?.ToLower();
+                            var bundleName = Path.GetDirectoryName(file)?.ToLower();
                             if (!string.IsNullOrEmpty(pathInfo.BundleName))
                                 bundleName = string.Format(pathInfo.BundleName, bundleName);
                             

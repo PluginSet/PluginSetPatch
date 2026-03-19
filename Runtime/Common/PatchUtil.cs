@@ -90,7 +90,8 @@ namespace PluginSet.Patch
             {
                 return "res_resources";
             }
-            
+
+            assetName = resourcePath.Substring(pos + 1);
             return GetResourceAssetBundleName(resourcePath.Substring(0, pos));
         }
 
@@ -211,11 +212,11 @@ namespace PluginSet.Patch
             {typeof(ScriptableObject), new []{"asset"}},
         };
 
-        private static readonly List<string> allFileTypes = (from kv in fileTypes
+        private static readonly List<string> AllFileTypes = (from kv in fileTypes
             from tn in kv.Value
             select tn).ToList();
 
-        public static IEnumerable<string> FindTypeFileExtensions(Type type)
+        private static IEnumerable<string> FindTypeFileExtensions(Type type)
         {
             if (fileTypes.TryGetValue(type, out var result))
                 return result;
@@ -229,16 +230,27 @@ namespace PluginSet.Patch
             return null;
         }
 
+        private static string FormatBundleName(in PathInfo pathInfo, string directory)
+        {
+            var bundleName = Path.GetFileName(directory)?.ToLower();
+            if (!string.IsNullOrEmpty(pathInfo.BundleName))
+                bundleName = string.Format(pathInfo.BundleName, bundleName);
+            if (pathInfo.UseResourceLoad)
+                bundleName = PatchUtil.GetResourceAssetBundleName(bundleName);
+            return bundleName;
+        }
+
         public static UnityEngine.Object LoadEditorAsset(string path, Dictionary<string, PathInfo[]> pathInfos, Type type)
         {
             var extensions = FindTypeFileExtensions(type);
             if (extensions == null)
-                extensions = allFileTypes;
+                extensions = AllFileTypes;
 
             var manager = ResourcesManager.Instance;
             foreach (var ext in extensions)
             {
-                var tempPath = $"{path}.{ext}";
+                var bundleName = GetResourcesAssetBundle(path, out var assetName);
+                var tempPath = $"{assetName}.{ext}";
                 
                 foreach (var searchPath in manager.SearchPaths)
                 {
@@ -252,10 +264,53 @@ namespace PluginSet.Patch
                             string fileName = null;
                             if (!string.IsNullOrEmpty(pathInfo.Path))
                             {
-                                if (pathInfo.BuildType == PathBuildType.AllInBundle)
-                                    fileName = FindMatchFileName(Path.Combine(pathInfo.Path, ".."), tempPath);
-                                else
-                                    fileName = FindMatchFileName(pathInfo.Path, tempPath);
+                                switch (pathInfo.BuildType)
+                                {
+                                    case PathBuildType.AllInBundle:
+                                    {
+                                        if (!FormatBundleName(pathInfo, pathInfo.Path).Equals(bundleName))
+                                            continue;
+                                        
+                                        fileName = FindMatchFileName(pathInfo.Path, tempPath);
+                                    }
+                                        break;
+                                    case PathBuildType.TopDirectory:
+                                    {
+                                        foreach (var directory in Directory.GetDirectories(pathInfo.Path, "*", SearchOption.TopDirectoryOnly))
+                                        {
+                                            if (!FormatBundleName(pathInfo, directory).Equals(bundleName))
+                                                continue;
+                                            
+                                            fileName = FindMatchFileName(directory, tempPath);
+                                            if (!string.IsNullOrEmpty(fileName))
+                                                break;
+                                        }
+
+                                        if (string.IsNullOrEmpty(fileName))
+                                        {
+                                            fileName = FindMatchFileName(pathInfo.Path, tempPath);
+                                        }
+                                    }
+                                        break;
+                                    case PathBuildType.AllDirectories:
+                                    {
+                                        foreach (var directory in Directory.GetDirectories(pathInfo.Path, "*", SearchOption.AllDirectories))
+                                        {
+                                            if (!FormatBundleName(pathInfo, directory).Equals(bundleName))
+                                                continue;
+                                            
+                                            fileName = FindMatchFileName(directory, tempPath);
+                                            if (!string.IsNullOrEmpty(fileName))
+                                                break;
+                                        }
+                                        
+                                        if (string.IsNullOrEmpty(fileName))
+                                        {
+                                            fileName = FindMatchFileName(pathInfo.Path, tempPath);
+                                        }
+                                    }
+                                        break;
+                                }
                             }
 
                             if (fileName == null && pathInfo.FileList != null)
