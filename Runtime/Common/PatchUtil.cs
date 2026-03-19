@@ -210,6 +210,7 @@ namespace PluginSet.Patch
             {typeof(Texture), new []{"jpg", "png", "bmp", "tif", "gif"}},
             {typeof(Mesh), new []{"asset"}},
             {typeof(ScriptableObject), new []{"asset"}},
+            {typeof(AudioClip), new []{"mp3", "ogg", "wav"}},
         };
 
         private static readonly List<string> AllFileTypes = (from kv in fileTypes
@@ -218,6 +219,9 @@ namespace PluginSet.Patch
 
         private static IEnumerable<string> FindTypeFileExtensions(Type type)
         {
+            if (type == null)
+                return null;
+            
             if (fileTypes.TryGetValue(type, out var result))
                 return result;
 
@@ -239,8 +243,8 @@ namespace PluginSet.Patch
                 bundleName = PatchUtil.GetResourceAssetBundleName(bundleName);
             return bundleName;
         }
-
-        public static UnityEngine.Object LoadEditorAsset(string path, Dictionary<string, PathInfo[]> pathInfos, Type type)
+        
+        public static string FindEditorAsset(string path, Dictionary<string, PathInfo[]> pathInfos, Type type = null, bool onlyRes = false)
         {
             var extensions = FindTypeFileExtensions(type);
             if (extensions == null)
@@ -258,7 +262,7 @@ namespace PluginSet.Patch
                     {
                         foreach (var pathInfo in paths)
                         {
-                            if (!pathInfo.UseResourceLoad)
+                            if (onlyRes && !pathInfo.UseResourceLoad)
                                 continue;
 
                             string fileName = null;
@@ -327,15 +331,23 @@ namespace PluginSet.Patch
                                     }
                                 }
                             }
-                            
-                            if (fileName != null)
-                                return UnityEditor.AssetDatabase.LoadAssetAtPath(Global.GetSubPath(".", fileName), type);
+
+                            if (!string.IsNullOrEmpty(fileName))
+                                return fileName;
                         }
                     }
                 }
             }
 
             return null;
+        }
+
+        public static UnityEngine.Object LoadEditorAsset(string path, Dictionary<string, PathInfo[]> pathInfos, Type type)
+        {
+            var fileName = FindEditorAsset(path, pathInfos, type, true);
+            if (string.IsNullOrEmpty(fileName))
+                return null;
+            return UnityEditor.AssetDatabase.LoadAssetAtPath(Global.GetSubPath(".", fileName), type);
         }
 
         public static T LoadEditorAsset<T>(string path, Dictionary<string, PathInfo[]> pathInfos) where T: UnityEngine.Object

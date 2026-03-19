@@ -12,6 +12,41 @@ namespace PluginSet.Patch.Editor
     [BuildTools]
     public static class BuildPatchTools
     {
+        private static readonly string[] SupportAudioTypes = new[] { ".mp3", ".wav", ".ogg", ".mp4" };
+
+        private static bool IsAudioFile(string file)
+        {
+            return SupportAudioTypes.Contains(Path.GetExtension(file));
+        }
+        
+        private static void CollectAllAudioFiles(BuildProcessorContext context, string patchName, in PathInfo[] paths)
+        {
+            var fileMap = new Dictionary<string, FileBundleInfo>();
+            var bundleInfos = new Dictionary<string, BundleInfo>();
+            var soundPaths = paths.Where(path => path.AudioPatchType != AudioPatchType.None).ToArray();
+            foreach (var ext in SupportAudioTypes)
+            {
+                CollectFileMap(context, patchName, soundPaths, new List<string>(), ref fileMap, ref bundleInfos, new Dictionary<string, string>(), $"*{ext}");
+            }
+        }
+        
+        [OnSyncEditorSetting]
+        public static void OnSyncEditorSettingFirst(BuildProcessorContext context)
+        {
+            if (!context.IsSupportAudioPatch())
+                return;
+                
+            var buildParams = context.BuildChannels.Get<BuildPatchParams>();
+            CollectAllAudioFiles(context, context.StreamingAssetsName, buildParams.StreamingPaths);
+            foreach (var info in buildParams.Patches)
+            {
+                if (info.Ignore)
+                    continue;
+                
+                CollectAllAudioFiles(context, info.Name, info.Paths);
+            }
+        }
+        
         [CheckRebuildAssetBundles]
         public static bool CheckRebuildAssetBundles(BuildProcessorContext context)
         {
@@ -137,6 +172,7 @@ namespace PluginSet.Patch.Editor
             
             var invalidList = context.TryGet<List<string>>("invalidAssets", new List<string>());
             var depFileBundleName = context.TryGet("depFileBundleName", new Dictionary<string, string>());
+            var streamName = context.StreamingAssetsName;
             var streamPath = context.StreamingAssetsPath;
             if (string.IsNullOrEmpty(streamPath))
                 return;
@@ -162,7 +198,7 @@ namespace PluginSet.Patch.Editor
                     Global.CallCustomOrderMethods<OnBuildBundlesAttribute, BuildToolsAttribute>(context);
 
                     var infoPaths = info.Paths.Where(path => buildPaths.Contains(path.Path));
-                    CollectFileMap(infoPaths.ToArray(), invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+                    CollectFileMap(context, info.Name, infoPaths.ToArray(), invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
                     
                     context.Set<BundleInfo[]>("patchBundleRevertInfo", bundleInfos.Values.ToArray());
 
@@ -172,7 +208,7 @@ namespace PluginSet.Patch.Editor
                             continue;
 
                         var files = AssetDatabase.GetAssetPathsFromAssetBundle(bundleName);
-                        CollectFileMapWithFiles(bundleName, files, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+                        CollectFileMapWithFiles(context, info.Name, bundleName, files, string.Empty, invalidList, ref fileMap, ref bundleInfos, depFileBundleName, AudioPatchType.None);
                     }
                     
                     foreach (var kv in fileMap)
@@ -220,8 +256,8 @@ namespace PluginSet.Patch.Editor
             
             var modFiles = context.TryGet<List<string>>("UpdatePatchModFiles", null);
             var addFiles = context.TryGet<List<string>>("UpdatePatchAddFiles", null);
-            CollectResources(modFiles, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
-            CollectResources(addFiles, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+            CollectResources(context, modFiles, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+            CollectResources(context, addFiles, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
             context.SetBuildResult("CollectedResources", string.Join(",", fileMap.Keys));
 
             foreach (var bundleName in AssetDatabase.GetAllAssetBundleNames())
@@ -230,11 +266,11 @@ namespace PluginSet.Patch.Editor
                     continue;
 
                 var files = AssetDatabase.GetAssetPathsFromAssetBundle(bundleName);
-                CollectFileMapWithFiles(bundleName, files, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+                CollectFileMapWithFiles(context, streamName, bundleName, files, string.Empty, invalidList, ref fileMap, ref bundleInfos, depFileBundleName, AudioPatchType.None);
             }
 
             var streamPaths = context.TryGet("streamingPaths", buildParams.StreamingPaths);
-            CollectFileMap(streamPaths, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
+            CollectFileMap(context, streamName, streamPaths, invalidList, ref fileMap, ref bundleInfos, depFileBundleName);
 
             context.Set<BundleInfo[]>("patchBundleRevertInfo", bundleInfos.Values.ToArray());
 
@@ -299,12 +335,12 @@ namespace PluginSet.Patch.Editor
             FileManifest.AppendFileInfo(manifest, streamingPath, streamingName, version , ref map, subPatches, context.ResourceVersion);
         }
 
-        private static void CollectFileMap(in PathInfo[] paths,
+        private static void CollectFileMap(BuildProcessorContext context, string patchName, in PathInfo[] paths,
             in List<string> ignoreFiles,
             ref Dictionary<string, FileBundleInfo> fileMap,
             ref Dictionary<string, BundleInfo> bundleInfos,
-            in Dictionary<string, string> defFileBundleName
-            )
+            in Dictionary<string, string> defFileBundleName,
+            string searchPattern = "*.*")
         {
             if (paths == null || paths.Length <= 0)
                 return;
@@ -320,15 +356,16 @@ namespace PluginSet.Patch.Editor
                         if (!string.IsNullOrEmpty(pathInfo.BundleName))
                             bundleName = string.Format(pathInfo.BundleName, bundleName);
                         if (!string.IsNullOrEmpty(path))
-                            bundleName = CollectFileMapWithPath(bundleName, pathInfo.UseResourceLoad, path
-                                , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                            bundleName = CollectFileMapWithPath(context, patchName, bundleName, pathInfo.UseResourceLoad, path
+                                , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, pathInfo.AudioPatchType, searchPattern);
 
                         if (pathInfo.FileList != null)
-                            CollectFileMapWithFiles(bundleName, pathInfo.FileList, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                            CollectFileMapWithFiles(context, patchName, bundleName, pathInfo.FileList, Global.GetFullPath(path), ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, pathInfo.AudioPatchType);
                     } break;
                     case PathBuildType.TopDirectory:
                     {
-                        foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.TopDirectoryOnly))
+                        var dir = Global.GetFullPath(path);
+                        foreach (var file in Directory.GetFiles(path, searchPattern, SearchOption.TopDirectoryOnly))
                         {
                             if (!Global.IsAsset(file))
                                 continue;
@@ -340,7 +377,7 @@ namespace PluginSet.Patch.Editor
                             if (string.IsNullOrEmpty(bundleName))
                                 continue;
                             
-                            CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                            CollectFileMapWithFile(context, patchName, bundleName, file, dir, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, pathInfo.AudioPatchType);
                         }
                         
                         foreach (var directory in Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly))
@@ -349,14 +386,15 @@ namespace PluginSet.Patch.Editor
                             if (!string.IsNullOrEmpty(pathInfo.BundleName))
                                 bundleName = string.Format(pathInfo.BundleName, bundleName);
                             
-                            CollectFileMapWithPath(bundleName, pathInfo.UseResourceLoad, directory
-                                , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                            CollectFileMapWithPath(context, patchName, bundleName, pathInfo.UseResourceLoad, directory
+                                , ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, pathInfo.AudioPatchType, searchPattern);
                         }
                         
                     } break;
                     case PathBuildType.AllDirectories:
                     {
-                        foreach (var file in Directory.GetFiles(path, "*.*", SearchOption.AllDirectories))
+                        var dir = Global.GetFullPath(path);
+                        foreach (var file in Directory.GetFiles(path, searchPattern, SearchOption.AllDirectories))
                         {
                             if (!Global.IsAsset(file))
                                 continue;
@@ -368,19 +406,21 @@ namespace PluginSet.Patch.Editor
                             if (string.IsNullOrEmpty(bundleName))
                                 continue;
                             
-                            CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                            CollectFileMapWithFile(context, patchName, bundleName, file, dir, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, pathInfo.AudioPatchType);
                         }
                     } break;
                 }
             }
         }
 
-        private static string CollectFileMapWithPath(string bundleName, bool useResourceLoad
+        private static string CollectFileMapWithPath(BuildProcessorContext context, string patchName
+            , string bundleName, bool useResourceLoad
             , string path, in List<string> ignoreFiles
         , ref Dictionary<string, FileBundleInfo> fileMap
         , ref Dictionary<string, BundleInfo> bundleInfos
         , in Dictionary<string, string> defFileBundleName
-        )
+        , AudioPatchType audioPatchType
+        , string searchPattern = "*.*")
         {
             if (string.IsNullOrEmpty(bundleName))
                 bundleName = Path.GetFileName(path);
@@ -390,19 +430,20 @@ namespace PluginSet.Patch.Editor
 
             if (File.Exists(path))
             {
-                CollectFileMapWithFiles(bundleName, new []{ path }, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                CollectFileMapWithFiles(context, patchName, bundleName, new []{ path }, Global.GetFullPath(path), ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, audioPatchType);
             }
             else
             {
-                var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
-                CollectFileMapWithFiles(bundleName, files, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                var files = Directory.GetFiles(path, searchPattern, SearchOption.AllDirectories);
+                CollectFileMapWithFiles(context, patchName, bundleName, files, Global.GetFullPath(path), ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, audioPatchType);
             }
             return bundleName;
         }
 
-        private static void CollectFileMapWithFiles(string bundleName, IEnumerable<string> files,
+        private static void CollectFileMapWithFiles(BuildProcessorContext context, string patchName, string bundleName, IEnumerable<string> files, string dir,
             in List<string> ignoreFiles, ref Dictionary<string, FileBundleInfo> fileMap
-            , ref Dictionary<string, BundleInfo> bundleInfos, in Dictionary<string, string> defFileBundleName)
+            , ref Dictionary<string, BundleInfo> bundleInfos, in Dictionary<string, string> defFileBundleName
+            , AudioPatchType audioPatchType)
         {
             if (files == null)
                 return;
@@ -413,11 +454,11 @@ namespace PluginSet.Patch.Editor
                     continue;
 
                 var file = Global.GetFullPath(f);
-                CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                CollectFileMapWithFile(context, patchName, bundleName, file, dir, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, audioPatchType);
             }
         }
 
-        private static void CollectResources(IEnumerable<string> resFiles, in List<string> ignoreFiles,
+        private static void CollectResources(BuildProcessorContext context, IEnumerable<string> resFiles, in List<string> ignoreFiles,
             ref Dictionary<string, FileBundleInfo> fileMap, ref Dictionary<string, BundleInfo> bundleInfos,
             in Dictionary<string, string> defFileBundleName)
         {
@@ -425,6 +466,7 @@ namespace PluginSet.Patch.Editor
                 return;
             
             var resourcePath = Path.Combine(Application.dataPath, "Resources");
+            var dir = Global.GetFullPath(resourcePath);
             foreach (var file in resFiles)
             {
                 if (!Global.IsAsset(file))
@@ -435,24 +477,50 @@ namespace PluginSet.Patch.Editor
 
                 var subPath = Global.GetSubPath(resourcePath, file);
                 var bundleName = PatchUtil.GetResourcesAssetBundle(subPath, out _);
-                CollectFileMapWithFile(bundleName, file, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName);
+                CollectFileMapWithFile(context, string.Empty, bundleName, file, dir, ignoreFiles, ref fileMap, ref bundleInfos, defFileBundleName, AudioPatchType.None);
             }
         }
 
-        private static void CollectFileMapWithFile(string bundleName, string file, in List<string> ignoreFiles,
+        private static void CollectFileMapWithFile(BuildProcessorContext context, string patchName, string bundleName, string file, string dir, in List<string> ignoreFiles,
             ref Dictionary<string, FileBundleInfo> fileMap, ref Dictionary<string, BundleInfo> bundleInfos,
-            in Dictionary<string, string> defFileBundleName)
+            in Dictionary<string, string> defFileBundleName, AudioPatchType audioPatchType)
         {
+            if (context.IsSupportAudioPatch() && IsAudioFile(file) && audioPatchType != AudioPatchType.None)
+            {
+                switch (audioPatchType)
+                {
+                    case AudioPatchType.SplitAsSound:
+                    {
+                        var tempPath = Path.Combine(Path.GetDirectoryName(file)!, Path.GetFileNameWithoutExtension(file));
+                        var name = Global.GetSubPath(dir, tempPath);
+                        name = bundleName.StartsWith("res_") ? $"{bundleName.Substring(4)}/{name}" : $"{bundleName}/{name}";
+                        context.AddSoundPatchFiles(patchName, name, Global.GetAssetPath(file), bundleName);
+                    }
+                        break;
+                    case AudioPatchType.SplitAsMusic:
+                    {
+                        var tempPath = Path.Combine(Path.GetDirectoryName(file)!, Path.GetFileNameWithoutExtension(file));
+                        var name = Global.GetSubPath(dir, tempPath);
+                        name = bundleName.StartsWith("res_") ? $"{bundleName.Substring(4)}/{name}" : $"{bundleName}/{name}";
+                        context.AddMusicPatchFiles(patchName, name, Global.GetAssetPath(file), bundleName);
+                    }
+                        break;
+                }
+
+                return;
+            }
+            
             file = Global.GetFullPath(file);
             if (!fileMap.TryGetValue(file, out var fileBundleInfo))
             {
-                fileBundleInfo = new FileBundleInfo(file, bundleName);
+                fileBundleInfo = new FileBundleInfo(file, dir, bundleName);
                 fileMap.Add(file, fileBundleInfo);
             }
 
             CollectFileCurrentBundleInfo(file, ref bundleInfos);
             fileBundleInfo.BundleName = bundleName;
 
+            var assetsRoot = Global.GetFullPath(Application.dataPath).ToLower();
             var assetPath = Global.GetSubPath(".", file);
             foreach (var df in AssetDatabase.GetDependencies(assetPath))
             {
@@ -460,6 +528,9 @@ namespace PluginSet.Patch.Editor
                     continue;
 
                 var depFile = Global.GetFullPath(df);
+                if (!depFile.ToLower().StartsWith(assetsRoot))
+                    continue;
+                
                 if (fileMap.TryGetValue(depFile, out var info))
                 {
                     info.AddReference(bundleName);
@@ -477,7 +548,7 @@ namespace PluginSet.Patch.Editor
                 if (defFileBundleName.TryGetValue(depFile, out var bn))
                     depBundleName = bn;
 
-                info = new FileBundleInfo(depFile, depBundleName);
+                info = new FileBundleInfo(depFile, dir, depBundleName);
                 info.AddReference(bundleName);
                 fileMap.Add(depFile, info);
             }

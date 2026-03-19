@@ -62,14 +62,18 @@ namespace PluginSet.Patch.Editor
                 set => _bundleName = value;
             }
 
+            public string DirPath { get; }
+            public string FilePath => _filePath;
+
             private string _filePath;
             private string _bundleName;
 
             private List<string> _references = new List<string>();
 
-            public FileBundleInfo(string filePath, string bundleName = null)
+            public FileBundleInfo(string filePath, string dirPath, string bundleName = null)
             {
                 _filePath = filePath;
+                DirPath = dirPath;
                 _bundleName = bundleName;
             }
 

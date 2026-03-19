@@ -74,15 +74,26 @@ namespace PluginSet.Patch
 
         public override void AddSearchPath(string searchPath, bool front = false)
         {
-            base.AddSearchPath(searchPath, front);
             var fileManifest = FileManifest.LoadPatchFileManifest(searchPath, PatchesSavePath);
             AddSearchManifest(fileManifest, front);
+            base.AddSearchPath(searchPath, front);
         }
 
         public override void RemoveSearchPath(string searchPath)
         {
-            RemoveSearchManifest(searchPath);
             base.RemoveSearchPath(searchPath);
+            RemoveSearchManifest(searchPath);
+        }
+
+        public override string GetPatchVersion(string patchName)
+        {
+            foreach (var manifest in _searchManifest)
+            {
+                if (manifest.Name == patchName)
+                    return manifest.Version;
+            }
+            
+            return ResourceVersion;
         }
 
         private void AddSearchManifest(FileManifest fileManifest, bool front)
@@ -382,7 +393,14 @@ namespace PluginSet.Patch
         {
             var fileInfo = FindFileInfo(fileName);
             if (!fileInfo.HasValue)
+            {
+#if UNITY_EDITOR
+                var file = PatchUtil.FindEditorAsset(fileName, PathInfoses, null);
+                if (!string.IsNullOrEmpty(file))
+                    return file;
+#endif
                 return null;
+            }
             
             return fileInfo.Value.FileName;
         }
