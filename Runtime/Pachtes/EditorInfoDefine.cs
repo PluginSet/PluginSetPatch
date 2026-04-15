@@ -12,13 +12,6 @@ namespace PluginSet.Patch
         AllDirectories,
     }
 
-    public enum AudioPatchType
-    {
-        None,
-        SplitAsMusic,
-        SplitAsSound,
-    }
-
     [Serializable]
     public struct PathInfo
     {
@@ -44,10 +37,6 @@ namespace PluginSet.Patch
         [Tooltip("为空时使用目录名称代替")]
         [SerializeField]
         public string BundleName;
-
-        [Tooltip("分离包中的音效音频文件（仅当有音频处理插件时）")]
-        [SerializeField]
-        public AudioPatchType AudioPatchType;
 
         [HideInInspector]
 #if UNITY_2020_2_OR_NEWER
